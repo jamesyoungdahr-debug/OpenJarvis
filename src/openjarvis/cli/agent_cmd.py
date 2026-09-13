@@ -818,8 +818,10 @@ def errors():
     "auto_approve",
     default=True,
     help="Auto-approve tool execution that would otherwise need confirmation. "
-    "Default: on (suits non-interactive CLI use). Pass --no-yes to require a "
-    "TTY prompt for tools whose ToolSpec sets requires_confirmation=True.",
+    "Default: on (suits non-interactive CLI use). Every auto-approval is "
+    "recorded in the approval log; computer_use and hyperv_admin are never "
+    "auto-approved. Pass --no-yes to require a TTY prompt for tools whose "
+    "ToolSpec sets requires_confirmation=True.",
 )
 def ask(agent_id, message, auto_approve):
     """Ask an agent a question (immediate response)."""
@@ -837,7 +839,14 @@ def ask(agent_id, message, auto_approve):
     # git_*). `executor` is the AgentExecutor; the callback is read in
     # _invoke_agent and propagated to the constructed agent via agent_kwargs.
     if auto_approve:
-        executor._confirm_callback = lambda _prompt: True
+        from openjarvis.security.approval_callback import (
+            make_audited_auto_approve_callback,
+        )
+
+        executor._confirm_callback = make_audited_auto_approve_callback(
+            agent_id=agent_id,
+            source="cli.agent_ask",
+        )
     else:
         executor._confirm_callback = lambda prompt: click.confirm(
             f"\n{prompt}", default=False

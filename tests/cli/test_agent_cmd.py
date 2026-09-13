@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
@@ -117,3 +117,52 @@ class TestNewAgentCommands:
         )
         for cmd in cmds:
             assert cmd in result.output, f"Missing command: {cmd}"
+
+
+class TestAgentAskApproval:
+    def _invoke(self, args, executor):
+        manager = MagicMock()
+        manager.list_messages.return_value = []
+        with (
+            patch("openjarvis.cli.agent_cmd._get_manager", return_value=manager),
+            patch(
+                "openjarvis.cli.agent_cmd._resolve_agent_id",
+                return_value="agent-1",
+            ),
+            patch(
+                "openjarvis.cli.agent_cmd._get_scheduler_and_executor",
+                return_value=(None, executor, None),
+            ),
+            patch("openjarvis.cli.agent_cmd._run_tick_with_live_trace"),
+        ):
+            return CliRunner().invoke(cli, args)
+
+    def test_yes_uses_audited_auto_approve_callback(self) -> None:
+        executor = MagicMock()
+        audited = MagicMock(name="audited_callback")
+        with patch(
+            "openjarvis.security.approval_callback.make_audited_auto_approve_callback",
+            return_value=audited,
+        ) as make_callback:
+            result = self._invoke(["agents", "ask", "agent-1", "hi"], executor)
+
+        assert result.exit_code == 0, result.output
+        make_callback.assert_called_once_with(
+            agent_id="agent-1",
+            source="cli.agent_ask",
+        )
+        assert executor._confirm_callback is audited
+
+    def test_no_yes_does_not_auto_approve(self) -> None:
+        executor = MagicMock()
+        with patch(
+            "openjarvis.security.approval_callback.make_audited_auto_approve_callback",
+        ) as make_callback:
+            result = self._invoke(
+                ["agents", "ask", "agent-1", "hi", "--no-yes"],
+                executor,
+            )
+
+        assert result.exit_code == 0, result.output
+        make_callback.assert_not_called()
+        assert callable(executor._confirm_callback)

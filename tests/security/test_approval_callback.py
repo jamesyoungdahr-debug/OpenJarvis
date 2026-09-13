@@ -6,11 +6,10 @@ import threading
 import time
 from unittest.mock import MagicMock
 
-import pytest
-
 from openjarvis.security.approval_callback import (
     NEVER_REMEMBER_TOOLS,
     extract_tool_name_from_prompt,
+    make_audited_auto_approve_callback,
     make_queued_confirm_callback,
 )
 from openjarvis.tools.approval_store import (
@@ -31,7 +30,12 @@ def _prompt(tool_name: str) -> str:
 
 
 def test_extract_tool_name_from_prompt_matches_expected_format():
-    assert extract_tool_name_from_prompt("Allow execution of tool 'shell_exec' with args {'command': 'ls'}?") == "shell_exec"
+    assert (
+        extract_tool_name_from_prompt(
+            "Allow execution of tool 'shell_exec' with args {'command': 'ls'}?"
+        )
+        == "shell_exec"
+    )
 
 
 def test_extract_tool_name_from_prompt_falls_back_on_malformed_input():
@@ -40,7 +44,9 @@ def test_extract_tool_name_from_prompt_falls_back_on_malformed_input():
 
 def test_approve_via_store_from_another_thread_returns_true(tmp_path):
     store = _make_store(tmp_path)
-    confirm = make_queued_confirm_callback(store=store, timeout_seconds=5, poll_interval_seconds=0.05)
+    confirm = make_queued_confirm_callback(
+        store=store, timeout_seconds=5, poll_interval_seconds=0.05
+    )
 
     result_holder = {}
 
@@ -68,7 +74,9 @@ def test_approve_via_store_from_another_thread_returns_true(tmp_path):
 
 def test_deny_via_store_returns_false(tmp_path):
     store = _make_store(tmp_path)
-    confirm = make_queued_confirm_callback(store=store, timeout_seconds=5, poll_interval_seconds=0.05)
+    confirm = make_queued_confirm_callback(
+        store=store, timeout_seconds=5, poll_interval_seconds=0.05
+    )
 
     result_holder = {}
 
@@ -95,7 +103,9 @@ def test_deny_via_store_returns_false(tmp_path):
 
 def test_timeout_denies_and_leaves_action_pending(tmp_path):
     store = _make_store(tmp_path)
-    confirm = make_queued_confirm_callback(store=store, timeout_seconds=0.2, poll_interval_seconds=0.05)
+    confirm = make_queued_confirm_callback(
+        store=store, timeout_seconds=0.2, poll_interval_seconds=0.05
+    )
 
     result = confirm(_prompt("apply_patch"))
 
@@ -110,7 +120,9 @@ def test_remembered_always_approve_short_circuits_without_queuing(tmp_path):
     permission_key = "tool_confirm:unknown:git_commit"
     store.set_permission(permission_key, DECISION_ALWAYS_APPROVE, approved=True)
 
-    confirm = make_queued_confirm_callback(store=store, timeout_seconds=5, poll_interval_seconds=0.05)
+    confirm = make_queued_confirm_callback(
+        store=store, timeout_seconds=5, poll_interval_seconds=0.05
+    )
     result = confirm(_prompt("git_commit"))
 
     assert result is True
@@ -123,7 +135,9 @@ def test_never_remember_tools_ignore_remembered_always_approve(tmp_path):
         permission_key = f"tool_confirm:unknown:{tool_name}"
         store.set_permission(permission_key, DECISION_ALWAYS_APPROVE, approved=True)
 
-        confirm = make_queued_confirm_callback(store=store, timeout_seconds=0.2, poll_interval_seconds=0.05)
+        confirm = make_queued_confirm_callback(
+            store=store, timeout_seconds=0.2, poll_interval_seconds=0.05
+        )
         result = confirm(_prompt(tool_name))
 
         # Not remembered -- times out (nobody resolves it), proving it was
@@ -135,8 +149,12 @@ def test_never_remember_tools_ignore_remembered_always_approve(tmp_path):
 
 def test_permission_key_includes_agent_id(tmp_path):
     store = _make_store(tmp_path)
-    confirm_a = make_queued_confirm_callback(store=store, agent_id="agent-a", timeout_seconds=0.2, poll_interval_seconds=0.05)
-    confirm_b = make_queued_confirm_callback(store=store, agent_id="agent-b", timeout_seconds=0.2, poll_interval_seconds=0.05)
+    confirm_a = make_queued_confirm_callback(
+        store=store, agent_id="agent-a", timeout_seconds=0.2, poll_interval_seconds=0.05
+    )
+    confirm_b = make_queued_confirm_callback(
+        store=store, agent_id="agent-b", timeout_seconds=0.2, poll_interval_seconds=0.05
+    )
 
     confirm_a(_prompt("file_write"))
     confirm_b(_prompt("file_write"))
@@ -144,3 +162,38 @@ def test_permission_key_includes_agent_id(tmp_path):
     keys = {p.permission_key for p in store.list_pending()}
     assert "tool_confirm:agent-a:file_write" in keys
     assert "tool_confirm:agent-b:file_write" in keys
+
+
+def test_audited_auto_approve_returns_true_and_records_approved_row(tmp_path):
+    store = _make_store(tmp_path)
+    confirm = make_audited_auto_approve_callback(
+        store=store, agent_id="agent-a", source="cli.agent_ask"
+    )
+
+    assert confirm(_prompt("file_write")) is True
+
+    assert store.list_pending() == []
+    approved = store.list_approved()
+    assert len(approved) == 1
+    assert approved[0].permission_key == "tool_confirm:agent-a:file_write"
+    assert approved[0].payload["auto_approved"] is True
+    assert approved[0].payload["source"] == "cli.agent_ask"
+
+
+def test_audited_auto_approve_refuses_never_remember_tools(tmp_path):
+    store = _make_store(tmp_path)
+    confirm = make_audited_auto_approve_callback(store=store, source="cli.agent_ask")
+
+    for tool_name in NEVER_REMEMBER_TOOLS:
+        assert confirm(_prompt(tool_name)) is False
+
+    assert store.list_approved() == []
+    assert store.list_pending() == []
+
+
+def test_audited_auto_approve_fails_closed_when_store_write_fails():
+    store = MagicMock()
+    store.queue_action.side_effect = RuntimeError("database is locked")
+    confirm = make_audited_auto_approve_callback(store=store)
+
+    assert confirm(_prompt("file_write")) is False

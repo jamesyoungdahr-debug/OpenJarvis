@@ -118,7 +118,11 @@ def make_queued_confirm_callback(
         logger.info(
             "Queued approval %s for tool '%s' (agent=%s, source=%s) -- "
             "blocking up to %.0fs for a decision.",
-            action.id, tool_name, agent_id, source, timeout_seconds,
+            action.id,
+            tool_name,
+            agent_id,
+            source,
+            timeout_seconds,
         )
 
         deadline = time.monotonic() + timeout_seconds
@@ -139,9 +143,82 @@ def make_queued_confirm_callback(
             "Approval %s for tool '%s' timed out after %.0fs -- denying this "
             "call. The action remains pending in ApprovalStore for later "
             "out-of-band resolution.",
-            action.id, tool_name, timeout_seconds,
+            action.id,
+            tool_name,
+            timeout_seconds,
         )
         return False
+
+    return _confirm
+
+
+def make_audited_auto_approve_callback(
+    *,
+    store: Optional[ApprovalStore] = None,
+    agent_id: str = "",
+    source: str = "auto_approve",
+) -> Callable[[str], bool]:
+    """Build a confirm-callback that approves instantly but records every approval.
+
+    For explicit opt-in auto-approval (e.g. ``jarvis agents ask --yes``). Each
+    approval is written to ApprovalStore as an already-approved row so it shows
+    up in the approvals audit trail. Fails closed: if the row cannot be
+    written, the call is denied rather than approved without a record. Tools
+    in NEVER_REMEMBER_TOOLS are never auto-approved; the denial is recorded.
+    """
+    resolved_store = store or ApprovalStore()
+
+    def _confirm(prompt: str) -> bool:
+        tool_name = extract_tool_name_from_prompt(prompt)
+        permission_key = f"tool_confirm:{agent_id or 'unknown'}:{tool_name}"
+        refused = tool_name in NEVER_REMEMBER_TOOLS
+        payload = {
+            "prompt": prompt,
+            "tool_name": tool_name,
+            "source": source,
+            "auto_approved": not refused,
+        }
+
+        try:
+            action = resolved_store.queue_action(
+                action_type="tool_confirmation",
+                description=prompt,
+                payload=payload,
+                permission_key=permission_key,
+                tier=TIER_HIGH,
+            )
+            resolved_store.update_status(
+                action.id, STATUS_DENIED if refused else STATUS_APPROVED
+            )
+        except Exception:
+            logger.exception(
+                "Could not record auto-approval for tool '%s' (agent=%s, "
+                "source=%s) -- denying this call.",
+                tool_name,
+                agent_id,
+                source,
+            )
+            return False
+
+        if refused:
+            logger.warning(
+                "Refused to auto-approve tool '%s' (agent=%s, source=%s): it "
+                "always requires a fresh human decision. Re-run without "
+                "auto-approval to decide interactively.",
+                tool_name,
+                agent_id,
+                source,
+            )
+            return False
+
+        logger.info(
+            "Auto-approved tool '%s' (agent=%s, source=%s); recorded as %s.",
+            tool_name,
+            agent_id,
+            source,
+            action.id,
+        )
+        return True
 
     return _confirm
 
@@ -149,5 +226,6 @@ def make_queued_confirm_callback(
 __all__ = [
     "NEVER_REMEMBER_TOOLS",
     "extract_tool_name_from_prompt",
+    "make_audited_auto_approve_callback",
     "make_queued_confirm_callback",
 ]
