@@ -355,3 +355,35 @@ class TestApprovalStoreIntegration:
         resp = client.get("/v1/approvals/pending")
         tiers = {a["tier"] for a in resp.json()["actions"]}
         assert tiers == {"trivial", "low", "medium", "high"}
+
+
+@pytest.mark.skipif(not HAS_FASTAPI, reason="fastapi not installed")
+class TestResolvedActionsCannotChange:
+    @pytest.mark.parametrize(
+        ("first", "second"),
+        [
+            ("approve", "deny"),
+            ("deny", "approve"),
+            ("approve", "approve"),
+            ("deny", "deny"),
+        ],
+    )
+    def test_second_decision_is_rejected(self, client, approval_store, first, second):
+        action_id = _queue(approval_store)
+        assert client.post(f"/v1/approvals/{action_id}/{first}").status_code == 200
+
+        resp = client.post(f"/v1/approvals/{action_id}/{second}")
+
+        assert resp.status_code == 409
+        expected = "approved" if first == "approve" else "denied"
+        assert approval_store.get_action(action_id).status == expected
+
+    @pytest.mark.parametrize("decision", ["approve", "deny"])
+    def test_expired_action_cannot_be_decided(self, client, approval_store, decision):
+        action_id = _queue(approval_store)
+        _expire(approval_store, action_id)
+
+        resp = client.post(f"/v1/approvals/{action_id}/{decision}")
+
+        assert resp.status_code == 409
+        assert approval_store.get_action(action_id).status == "expired"

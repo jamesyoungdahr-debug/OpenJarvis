@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 from openjarvis.tools.approval_store import (
     STATUS_APPROVED,
     STATUS_DENIED,
+    STATUS_PENDING,
     ApprovalStore,
     PendingAction,
 )
@@ -46,6 +47,27 @@ def _serialize(action: PendingAction) -> Dict[str, Any]:
     }
 
 
+def _resolve(action_id: str, status: str) -> Dict[str, Any]:
+    store = _get_store()
+    store.expire_stale()
+    action = store.get_action(action_id)
+    if action is None:
+        raise HTTPException(status_code=404, detail="Action not found")
+    # Only a pending action can be decided: an already approved, denied, or
+    # expired action must not be flipped (e.g. denied -> approved).
+    if action.status != STATUS_PENDING:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Action is already {action.status}; only pending actions can be "
+                "changed"
+            ),
+        )
+    store.update_status(action_id, status)
+    logger.info("Action %s %s via UI", action_id, status)
+    return {"status": status, "id": action_id}
+
+
 @router.get("/v1/approvals/pending")
 async def list_pending_approvals() -> Dict[str, Any]:
     store = _get_store()
@@ -56,24 +78,12 @@ async def list_pending_approvals() -> Dict[str, Any]:
 
 @router.post("/v1/approvals/{action_id}/approve")
 async def approve_action(action_id: str) -> Dict[str, Any]:
-    store = _get_store()
-    action = store.get_action(action_id)
-    if action is None:
-        raise HTTPException(status_code=404, detail="Action not found")
-    store.update_status(action_id, STATUS_APPROVED)
-    logger.info("Action %s approved via UI", action_id)
-    return {"status": "approved", "id": action_id}
+    return _resolve(action_id, STATUS_APPROVED)
 
 
 @router.post("/v1/approvals/{action_id}/deny")
 async def deny_action(action_id: str) -> Dict[str, Any]:
-    store = _get_store()
-    action = store.get_action(action_id)
-    if action is None:
-        raise HTTPException(status_code=404, detail="Action not found")
-    store.update_status(action_id, STATUS_DENIED)
-    logger.info("Action %s denied via UI", action_id)
-    return {"status": "denied", "id": action_id}
+    return _resolve(action_id, STATUS_DENIED)
 
 
 __all__ = ["router"]

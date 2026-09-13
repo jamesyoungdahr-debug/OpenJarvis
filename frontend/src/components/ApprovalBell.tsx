@@ -57,6 +57,9 @@ export function ApprovalBell() {
     try {
       await approveAction(id);
       setApprovals(prev => prev.filter(a => a.id !== id));
+    } catch {
+      // Decided or expired elsewhere: refresh so the stale item disappears.
+      await load();
     } finally {
       setProcessing(p => ({ ...p, [id]: false }));
     }
@@ -67,6 +70,9 @@ export function ApprovalBell() {
     try {
       await denyAction(id);
       setApprovals(prev => prev.filter(a => a.id !== id));
+    } catch {
+      // Decided or expired elsewhere: refresh so the stale item disappears.
+      await load();
     } finally {
       setProcessing(p => ({ ...p, [id]: false }));
     }
