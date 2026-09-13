@@ -248,6 +248,7 @@ DEFAULT_TOOL_CAPABILITIES: Dict[str, List[str]] = {
     "git_log": [Capability.FILE_READ],
     "git_status": [Capability.FILE_READ],
     "http_request": [Capability.NETWORK_FETCH],
+    "hyperv_admin": [Capability.SYSTEM_ADMIN],
     "hyperv_query": [],
     "image_generate": [Capability.NETWORK_FETCH, Capability.FILE_WRITE],
     "kg_add_entity": [Capability.MEMORY_WRITE],
