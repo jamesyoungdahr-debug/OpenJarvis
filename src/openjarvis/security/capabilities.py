@@ -261,6 +261,7 @@ DEFAULT_TOOL_CAPABILITIES: Dict[str, List[str]] = {
     "memory_retrieve": [Capability.MEMORY_READ],
     "memory_search": [Capability.MEMORY_READ],
     "memory_store": [Capability.MEMORY_WRITE],
+    "notify": [],
     "pause_scheduled_task": [Capability.SCHEDULE_CREATE],
     "pdf_extract": [Capability.FILE_READ],
     "queue_action": [Capability.MEMORY_WRITE],
