@@ -231,6 +231,7 @@ DEFAULT_TOOL_CAPABILITIES: Dict[str, List[str]] = {
     "clipboard": [Capability.SYSTEM_ADMIN],
     "code_interpreter": [Capability.CODE_EXECUTE],
     "code_interpreter_docker": [Capability.CODE_EXECUTE],
+    "computer_use": [Capability.SYSTEM_ADMIN],
     "db_query": [Capability.CODE_EXECUTE],
     "digest_collect": [Capability.MEMORY_READ, Capability.NETWORK_FETCH],
     "docker_shell_exec": [Capability.CODE_EXECUTE],

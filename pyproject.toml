@@ -124,6 +124,9 @@ wake-word = [
 notify = ["plyer>=2.1"]
 # System clipboard access for the `clipboard` tool (Linux also needs xclip or xsel).
 clipboard = ["pyperclip>=1.9"]
+# Desktop pointer/keyboard control for the `computer_use` tool. Deliberately not
+# part of `desktop`: input automation stays an explicit opt-in install.
+computer-use = ["pyautogui>=0.9.54", "Pillow>=10.0"]
 openhands = ["openhands-sdk>=1.0; python_version >= '3.12'"]
 # Apple Foundation Models (on-device AFM 3). Needs an Apple Silicon Mac on
 # macOS 26+ with Apple Intelligence enabled. The SDK compiles Swift bindings
