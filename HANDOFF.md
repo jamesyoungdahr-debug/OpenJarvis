@@ -96,14 +96,20 @@ edits went to the 4080 Super (`lmstudio-4080super`, 92,672 tokens).
 1. On a machine with `uv`: run `uv sync --extra dev --extra desktop`, build the
    Rust extension, run `make test`, and trace the unexplained assertion
    mismatches above.
-2. Manual smoke tests. None of these have run against the real thing yet:
+2. Live tests. Already done on Windows: the approval queue through the real
+   `jarvis approvals` command (approve, timeout, deny, and refusing to
+   re-approve), `notify`, `clipboard`, `computer_use` screenshots,
+   `hyperv_query`, and `hyperv_admin` rejecting an unknown VM and a wildcard.
+   Still to do:
    - `jarvis chat --wake` with a microphone
-   - a confirmation-gated tool from the desktop app, approved once from the bell
-     and once from `jarvis approvals`
+   - a confirmation-gated tool from the desktop app, approved from the bell
    - `jarvis ask` timing out with no decision
    - `jarvis agents ask --yes` writing an approved row
-   - `notify`, `clipboard`, `send_email` (SMTP and Gmail) and `computer_use`
-   - `hyperv_admin` on a disposable VM (only not-found and wildcard rejection
-     were exercised; `hyperv_query` was run for real)
-3. Open a PR from `fork/feat/wake-word-and-approval-hardening` against
-   `open-jarvis/OpenJarvis` `main`.
+   - `send_email` over SMTP and Gmail
+   - `computer_use` pointer and keyboard actions
+   - `hyperv_admin` state changes on a disposable VM
+3. Keep everything local: no push to `fork` and no pull request until Liam asks
+   (2026-09-13), and no pull request to `open-jarvis/OpenJarvis` before every
+   item above has been live-tested. Record why each change was added and what
+   goal it serves in `FORK_CHANGES.md`. After each completed phase or feature,
+   sync the project to the backup copy at `C:\projects\Open Jarvis Backup`.
