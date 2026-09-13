@@ -8,6 +8,12 @@ limits are.
     allowlist, no denylist, and no sandbox unless you turn one on. An agent
     holding this tool can do anything you can do from a terminal.
 
+!!! warning
+    `computer_use` controls your mouse and keyboard, and `hyperv_admin` can power
+    off virtual machines. Both ask for approval on every call, and a remembered
+    "always approve" never applies to them. Only enable them for agents you
+    trust with your desktop.
+
 ---
 
 ## Start here: you probably have no tools enabled
@@ -61,6 +67,12 @@ python -c "from openjarvis.core.config import load_config; print(load_config().t
 | `file_write` | Any writable path. 10 MB cap, can create parent directories. |
 | `apply_patch` | Applies unified diffs to any path. |
 | `code_interpreter` | Python in a subprocess, behind a coarse pattern blocklist. |
+| `send_email` | Sends plain-text email over SMTP or through the Google connector's Gmail sign-in. 10 recipients by default (`[tools.send_email].max_recipients`, hard limit 50). |
+| `clipboard` | Reads or replaces the system clipboard text. 100,000 character cap. |
+| `notify` | Shows a desktop notification. Title up to 64 characters, message up to 256. |
+| `computer_use` | Moves the pointer, clicks, scrolls, types, presses keys and saves screenshots on the local desktop. |
+| `hyperv_query` | Lists Hyper-V virtual machines. Windows only, read-only. |
+| `hyperv_admin` | Starts, stops, turns off, saves, restarts, pauses, resumes or checkpoints one Hyper-V VM. Windows only. |
 
 `file_read` and `file_write` take an `allowed_dirs` argument that limits them to
 a set of directories, but no config key populates it. When it's empty every path
@@ -80,20 +92,53 @@ against fat fingers, not as a security boundary.
 
 ## Confirmation behaviour
 
-`shell_exec`, `git_commit` and `agent_kill` are marked `requires_confirmation`.
-What that translates to depends entirely on how you launched the agent:
+These tools ask for approval before every call: `shell_exec`, `file_write`,
+`apply_patch`, `git_commit`, `docker_shell_exec`, `agent_spawn`, `agent_kill`,
+`channel_send`, `execute_pending_actions`, `send_email`, `clipboard`,
+`hyperv_admin` and `computer_use`.
+
+How you give that approval depends on how you launched the agent:
 
 | Entry point | Behaviour |
 |-------------|-----------|
-| `jarvis chat` | Prompts before each call. |
-| `jarvis ask` | Auto-approves. |
-| `jarvis agent ask` | Auto-approves. Pass `--no-yes` if you want prompts. |
-| HTTP server, desktop app | Auto-approves. Tools you added to an agent's toolkit count as pre-approved. |
+| `jarvis chat` | Prompts in the terminal before each call. |
+| `jarvis ask` | Queues the call and waits for a decision. |
+| `jarvis agents ask` | Approves instantly and records each approval in the approval log. `computer_use` and `hyperv_admin` are refused instead. Pass `--no-yes` to be prompted in the terminal. |
+| HTTP server, desktop app | Queues the call and waits for a decision. |
 | Embedded via `SystemBuilder` | No callback is wired, so these tools fail closed. |
 
 That last row catches people out. If `shell_exec` returns "requires
 confirmation but no confirmation callback is available", you're constructing the
 agent yourself and need to pass a `confirm_callback`.
+
+### Approving queued calls
+
+A queued call waits in the approval store until you decide. Approve or deny it
+from any of these:
+
+- `jarvis approvals list`, then `jarvis approvals approve <id>` or
+  `jarvis approvals deny <id>`
+- the approvals bell in the desktop app
+- `POST /v1/approvals/{id}/approve` or `POST /v1/approvals/{id}/deny`
+
+`jarvis approvals` only changes calls that are still pending, so it won't
+approve a call you already denied.
+
+If nobody decides in time, the call is denied. The wait is five minutes by
+default:
+
+```toml
+[security]
+approval_timeout_seconds = 300
+approval_poll_interval_seconds = 1.0
+```
+
+A timed-out call stays in the queue, but approving it afterwards doesn't rerun
+the tool.
+
+A remembered "always approve" or "always deny" decision for an agent and tool
+skips the queue. `computer_use` and `hyperv_admin` ignore remembered decisions:
+every call waits for a fresh one.
 
 !!! note "`enforce_tool_confirmation` doesn't do anything"
     The config loader accepts `security.enforce_tool_confirmation`, but nothing
@@ -145,21 +190,30 @@ touch it.
 
 ---
 
-## What you can't do
+## Desktop control
 
-There's no computer use. OpenJarvis can't see your screen, move the pointer or
-send keystrokes. No tool for it is registered and no input automation library
-appears anywhere in the codebase, so granting Accessibility or Screen Recording
-buys you nothing on its own.
+`computer_use` drives the local desktop through pyautogui. It isn't installed
+by default:
 
-The `click` and `type` actions you'll find are Playwright, scoped to a browser
-page rather than the desktop.
+```bash
+pip install 'openjarvis[computer-use]'
+```
 
-Some of this is reachable through `shell_exec` if you bring the tooling
-yourself. `screencapture` will take screenshots once you've granted Screen
-Recording, and something like `cliclick` will move the pointer. That gets you
-scripted actions. It doesn't get you an agent that looks at the screen and
-works out where to click.
+It can move the pointer, click, double-click, scroll, type, press a key or a
+key combination, and take a screenshot. Every call asks for approval, and
+moving the pointer into a screen corner aborts the action.
+
+Screenshots are saved to a temporary PNG and the tool returns only the file
+path. Tool results reach the model as text, so the agent can't look at a
+screenshot and work out where to click. It acts on coordinates you or the model
+already know.
+
+On macOS, grant Accessibility (for input) and Screen Recording (for
+screenshots) to the process that hosts the backend, the same way as Full Disk
+Access above.
+
+The `click` and `type` actions in the browser tools are separate. They're
+Playwright, scoped to a browser page rather than the desktop.
 
 ---
 
