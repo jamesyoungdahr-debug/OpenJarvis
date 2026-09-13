@@ -266,9 +266,12 @@ class AgentExecutor:
             if event.data.get("agent") == agent_id and trace_steps:
                 for step in reversed(trace_steps):
                     if step["type"] == "tool_call" and "output" not in step:
-                        step["output"] = {
-                            "result": str(event.data.get("result", ""))[:4096],
-                        }
+                        result = str(event.data.get("result", ""))[:4096]
+                        if event.data.get("sensitive") and result:
+                            from openjarvis.traces.redaction import REDACTED
+
+                            result = REDACTED
+                        step["output"] = {"result": result}
                         step["duration"] = event.data.get("duration", 0)
                         break
 

@@ -189,8 +189,17 @@ class TraceCollector:
         start_data = getattr(self, "_tool_start_data", {})
         # Pull through any metadata the tool attached to its ToolResult
         # (e.g. SkillTool's skill/skill_source/skill_kind tags) so the
-        # SkillOptimizer can bucket traces by skill name.
-        result_metadata = event.data.get("metadata") or {}
+        # SkillOptimizer can bucket traces by skill name. Traces are written to
+        # disk, so sensitive arguments/results and bulky values are redacted
+        # here; live event subscribers still receive the full data.
+        from openjarvis.traces.redaction import prepare_tool_step
+
+        arguments, result, metadata = prepare_tool_step(
+            arguments=start_data.get("arguments", {}),
+            result=event.data.get("result", ""),
+            metadata=event.data.get("metadata") or {},
+            sensitive=bool(event.data.get("sensitive") or start_data.get("sensitive")),
+        )
         self._current_steps.append(
             TraceStep(
                 step_type=StepType.TOOL_CALL,
@@ -201,13 +210,13 @@ class TraceCollector:
                 ),
                 input={
                     "tool": event.data.get("tool", ""),
-                    "arguments": start_data.get("arguments", {}),
+                    "arguments": arguments,
                 },
                 output={
                     "success": event.data.get("success", False),
-                    "result": event.data.get("result", ""),
+                    "result": result,
                 },
-                metadata=dict(result_metadata),
+                metadata=metadata,
             )
         )
 

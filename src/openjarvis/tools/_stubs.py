@@ -383,6 +383,8 @@ class ToolExecutor:
                     "tool": tool_call.name,
                     "arguments": params,
                     "agent": self._agent_id,
+                    # Lets trace persistence redact confirmation-gated calls.
+                    "sensitive": bool(tool.spec.requires_confirmation),
                 },
             )
 
@@ -457,6 +459,7 @@ class ToolExecutor:
                     "result": result_text,
                     "metadata": event_metadata,
                     "agent": self._agent_id,
+                    "sensitive": bool(tool.spec.requires_confirmation),
                 },
             )
 

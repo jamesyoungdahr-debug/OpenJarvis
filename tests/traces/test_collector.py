@@ -257,6 +257,53 @@ class TestTraceCollector:
         store.close()
 
 
+def test_sensitive_tool_step_is_redacted_before_storage(tmp_path: Path) -> None:
+    from types import SimpleNamespace
+
+    bus = EventBus()
+    store = TraceStore(tmp_path / "test.db")
+    collector = TraceCollector(_RichToolAgent(bus=bus), store=store, bus=bus)
+    collector._current_steps = []
+
+    collector._on_tool_start(
+        SimpleNamespace(
+            timestamp=1.0,
+            data={
+                "tool": "send_email",
+                "arguments": {"body": "secret plans"},
+                "agent": "",
+                "sensitive": True,
+            },
+        )
+    )
+    collector._on_tool_end(
+        SimpleNamespace(
+            timestamp=2.0,
+            data={
+                "tool": "send_email",
+                "success": True,
+                "latency": 1.0,
+                "result": "Sent secret plans",
+                "metadata": {
+                    "arguments": {"body": "secret plans"},
+                    "screenshot_base64": "iVBORw0KGgo=",
+                },
+                "agent": "",
+                "sensitive": True,
+            },
+        )
+    )
+
+    step = collector._current_steps[-1]
+    assert step.input["arguments"] == {"body": "[redacted]"}
+    assert step.output["result"] == "[redacted]"
+    assert step.metadata == {
+        "arguments": {"body": "[redacted]"},
+        "screenshot_base64": "[omitted]",
+    }
+    store.close()
+
+
 class _RichToolAgent(BaseAgent):
     """Agent that emits content-enriched events for testing."""
 
