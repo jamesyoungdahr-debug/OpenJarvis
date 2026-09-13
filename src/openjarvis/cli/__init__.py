@@ -100,6 +100,7 @@ if not _DATA_BOUNDARY_BOOTSTRAP:
     from openjarvis.cli._bootstrap import bootstrap_cmd
     from openjarvis.cli.add_cmd import add
     from openjarvis.cli.agent_cmd import agent
+    from openjarvis.cli.approvals_cmd import approvals
     from openjarvis.cli.ask import ask
     from openjarvis.cli.bench_cmd import bench
     from openjarvis.cli.channel_cmd import channel
@@ -148,6 +149,7 @@ if not _DATA_BOUNDARY_BOOTSTRAP:
     cli.add_command(scheduler, "scheduler")
     cli.add_command(doctor, "doctor")
     cli.add_command(agent, "agents")
+    cli.add_command(approvals, "approvals")
     cli.add_command(workflow, "workflow")
     cli.add_command(skill, "skill")
     cli.add_command(start, "start")
