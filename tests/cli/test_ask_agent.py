@@ -281,14 +281,46 @@ class TestAskAgentOption:
         agent_setup.config.tools.enabled = tools_enabled
         agent_setup.config.agent.tools = agent_tools
 
-        result = runner.invoke(
-            cli,
-            ["ask", "--agent", "confirming_agent", "Hello"],
-        )
+        with patch(
+            "openjarvis.security.approval_callback.make_queued_confirm_callback",
+            return_value=lambda _prompt: True,
+        ) as make_callback:
+            result = runner.invoke(
+                cli,
+                ["ask", "--agent", "confirming_agent", "Hello"],
+            )
 
         assert result.exit_code == 0
         assert "executed!" in result.output
         agent_setup.engine.generate.assert_not_called()
+        make_callback.assert_any_call(
+            agent_id="confirming_agent",
+            source="cli.ask",
+            timeout_seconds=agent_setup.config.security.approval_timeout_seconds,
+            poll_interval_seconds=(
+                agent_setup.config.security.approval_poll_interval_seconds
+            ),
+        )
+
+    def test_agent_tool_not_executed_when_approval_denied(
+        self,
+        runner,
+        agent_setup,
+    ):
+        agent_setup.config.tools.enabled = ["dangerous"]
+
+        with patch(
+            "openjarvis.security.approval_callback.make_queued_confirm_callback",
+            return_value=lambda _prompt: False,
+        ):
+            result = runner.invoke(
+                cli,
+                ["ask", "--agent", "confirming_agent", "Hello"],
+            )
+
+        assert result.exit_code == 0
+        assert "executed!" not in result.output
+        assert "execution denied by user" in result.output
 
 
 class TestAskSkillsAndTraces:

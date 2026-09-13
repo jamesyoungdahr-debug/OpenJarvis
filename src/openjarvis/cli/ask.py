@@ -402,6 +402,8 @@ def _run_agent(
                 tools.append(t)
                 existing.add(t.spec.name)
 
+    from openjarvis.security.approval_callback import make_queued_confirm_callback
+
     skill_manager = None
     skill_catalog_xml = None
     skill_few_shot_examples: list[str] = []
@@ -419,7 +421,14 @@ def _run_agent(
                 capability_policy=capability_policy,
                 agent_id=getattr(agent_cls, "agent_id", agent_name),
                 interactive=True,
-                confirm_callback=lambda prompt: True,
+                confirm_callback=make_queued_confirm_callback(
+                    agent_id=getattr(agent_cls, "agent_id", agent_name),
+                    source="cli.ask.skills_pipeline",
+                    timeout_seconds=config.security.approval_timeout_seconds,
+                    poll_interval_seconds=(
+                        config.security.approval_poll_interval_seconds
+                    ),
+                ),
             )
             skill_manager = SkillManager(
                 bus,
@@ -457,7 +466,12 @@ def _run_agent(
         agent_kwargs["tools"] = tools
         agent_kwargs["max_turns"] = config.agent.max_turns
         agent_kwargs["interactive"] = True
-        agent_kwargs["confirm_callback"] = lambda prompt: True
+        agent_kwargs["confirm_callback"] = make_queued_confirm_callback(
+            agent_id=agent_name,
+            source="cli.ask",
+            timeout_seconds=config.security.approval_timeout_seconds,
+            poll_interval_seconds=config.security.approval_poll_interval_seconds,
+        )
         agent_kwargs["agent_id"] = agent_name
         if capability_policy is not None:
             agent_kwargs["capability_policy"] = capability_policy
