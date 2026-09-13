@@ -63,6 +63,11 @@ approvals bell) already existed, but only the proactive agent used it.
   REST API or the desktop app, so someone running `jarvis ask` in a terminal
   couldn't answer. Goal: approve or deny from the same terminal. It only changes
   pending requests, so a denied or expired one can't be flipped to approved.
+- **The approval API only changes pending requests.** Why: the REST approve and
+  deny endpoints behind the desktop approvals bell would flip a request that was
+  already denied, approved or expired, so a denied tool call could be approved
+  later. Goal: every way of deciding follows the same rule as `jarvis approvals`.
+  The bell refreshes its list when a decision is rejected.
 - **`computer_use` and `hyperv_admin` always need a fresh decision.** Why:
   they're the highest-risk tools here, with full desktop control and the ability
   to power off virtual machines. Goal: a one-time or stale approval never
@@ -123,6 +128,17 @@ The libraries these tools need (`plyer`, `pyperclip`, `pyautogui`) are optional
 extras. `computer-use` is deliberately left out of the `desktop` extra, so input
 automation is always an explicit install.
 
+## Keeping sensitive data out of traces
+
+Why: OpenJarvis saves every tool call to its trace database. That included the
+arguments and results of confirmation-gated tools, so email bodies, typed text
+and clipboard contents were written to disk, along with full base64 browser
+screenshots. Goal: traces stay useful for debugging and learning without storing
+private data. For tools that require confirmation, the saved trace keeps
+argument names but replaces their values and the result with `[redacted]`. For
+every tool, base64 image data and very long strings are left out. Live views of
+tool calls still show the full data; only what gets saved is redacted.
+
 ## Wake word
 
 Why: voice chat required pressing Enter before every turn. Goal: say "hey
@@ -152,8 +168,10 @@ Every change has unit tests. Live-tested so far, on Windows:
 - `notify`, `clipboard` (read and write), and `computer_use` screenshots
 - `hyperv_query` against real Hyper-V, and `hyperv_admin` rejecting an unknown
   VM and a wildcard name
+- `jarvis ask` with a real local model (LM Studio on the RTX 4090): an approved
+  `file_write` wrote the file, and an unanswered one timed out and wrote nothing
 
 Still to test live before any pull request: the wake word with a microphone,
-approvals from the desktop app, `jarvis ask` timing out, `--yes` audit records,
+approvals from the desktop app, `--yes` audit records,
 `send_email` over SMTP and Gmail, `computer_use` pointer and keyboard actions,
 and `hyperv_admin` state changes on a disposable VM.

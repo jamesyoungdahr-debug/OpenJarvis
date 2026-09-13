@@ -82,14 +82,14 @@ Local model routing: the 4090 (`lmstudio-bridge`) was loaded with only a
 17,920-token context, too small for `run_coding_task` on large files. Large
 edits went to the 4080 Super (`lmstudio-4080super`, 92,672 tokens).
 
-## Known issues outside this branch's scope
+## Follow-up fixes
 
-- Tool arguments and result metadata are persisted into traces
-  (`ToolExecutor`, then `TraceCollector._on_tool_end`, then the trace store).
-  That stores email bodies, clipboard text, typed text and `browser_screenshot`
-  base64 images. Flagged as a separate task.
-- The REST approve/deny endpoints in `server/approval_routes.py` will flip an
-  already-resolved action. `jarvis approvals` refuses to.
+- Trace redaction (`traces/redaction.py`): for confirmation-gated tools, saved
+  traces keep argument names but redact values and results, and base64 data and
+  very long strings are dropped for every tool. Live event subscribers still get
+  the full data.
+- The REST approve/deny endpoints return 409 for anything not pending, and the
+  desktop approvals bell refreshes when a decision is rejected (`9c0c125c`).
 
 ## Next steps
 
@@ -99,11 +99,11 @@ edits went to the 4080 Super (`lmstudio-4080super`, 92,672 tokens).
 2. Live tests. Already done on Windows: the approval queue through the real
    `jarvis approvals` command (approve, timeout, deny, and refusing to
    re-approve), `notify`, `clipboard`, `computer_use` screenshots,
-   `hyperv_query`, and `hyperv_admin` rejecting an unknown VM and a wildcard.
+   `hyperv_query`, `hyperv_admin` rejecting an unknown VM and a wildcard, and
+   `jarvis ask` against a real LM Studio model (approved and timed-out calls).
    Still to do:
    - `jarvis chat --wake` with a microphone
    - a confirmation-gated tool from the desktop app, approved from the bell
-   - `jarvis ask` timing out with no decision
    - `jarvis agents ask --yes` writing an approved row
    - `send_email` over SMTP and Gmail
    - `computer_use` pointer and keyboard actions
