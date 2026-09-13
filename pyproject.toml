@@ -101,6 +101,7 @@ desktop = [
     "soundfile>=0.12",
     "openwakeword>=0.6",
     "plyer>=2.1",
+    "pyperclip>=1.9",
 ]
 # Local neural TTS. Kokoro pulls spacy/misaki for G2P; espeak-ng must also be
 # present on PATH (brew install espeak-ng) for out-of-dictionary words.
@@ -121,6 +122,8 @@ wake-word = [
 ]
 # Desktop notifications for the `notify` tool (Windows, macOS, Linux via D-Bus).
 notify = ["plyer>=2.1"]
+# System clipboard access for the `clipboard` tool (Linux also needs xclip or xsel).
+clipboard = ["pyperclip>=1.9"]
 openhands = ["openhands-sdk>=1.0; python_version >= '3.12'"]
 # Apple Foundation Models (on-device AFM 3). Needs an Apple Silicon Mac on
 # macOS 26+ with Apple Intelligence enabled. The SDK compiles Swift bindings

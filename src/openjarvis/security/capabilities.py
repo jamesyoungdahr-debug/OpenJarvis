@@ -228,6 +228,7 @@ DEFAULT_TOOL_CAPABILITIES: Dict[str, List[str]] = {
     "channel_send": [Capability.CHANNEL_SEND],
     "channel_status": [],
     "check_permission": [Capability.MEMORY_READ],
+    "clipboard": [Capability.SYSTEM_ADMIN],
     "code_interpreter": [Capability.CODE_EXECUTE],
     "code_interpreter_docker": [Capability.CODE_EXECUTE],
     "db_query": [Capability.CODE_EXECUTE],
