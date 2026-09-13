@@ -108,8 +108,13 @@ edits went to the 4080 Super (`lmstudio-4080super`, 92,672 tokens).
    - `send_email` over SMTP and Gmail
    - `computer_use` pointer and keyboard actions
    - `hyperv_admin` state changes on a disposable VM
-3. Keep everything local: no push to `fork` and no pull request until Liam asks
-   (2026-09-13), and no pull request to `open-jarvis/OpenJarvis` before every
-   item above has been live-tested. Record why each change was added and what
-   goal it serves in `FORK_CHANGES.md`. After each completed phase or feature,
-   sync the project to the backup copy at `C:\projects\Open Jarvis Backup`.
+3. Push to `fork` only when Liam asks (this branch was pushed on 2026-09-13 at
+   his request). No pull request to `open-jarvis/OpenJarvis` until Liam asks and
+   every item above has been live-tested. Record why each change was added and
+   what goal it serves in `FORK_CHANGES.md`, and log it in `CHANGELOG.md`. After
+   each completed phase or feature, sync the project to the backup copy at
+   `C:\projects\Open Jarvis Backup`.
+4. The branch-wide regression comparison (`tests/tools`, `tests/security`,
+   `tests/cli`, `tests/core` and `tests/server` on `5588bfcf` versus the branch)
+   was interrupted at about 85% on both sides and never finished. Re-run it
+   before any pull request.

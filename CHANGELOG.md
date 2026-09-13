@@ -10,6 +10,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+**Local tools for acting on your computer.** `notify` shows desktop
+notifications (`notify` extra). `clipboard` reads or replaces clipboard text
+(`clipboard` extra). `send_email` sends plain-text email over SMTP or through
+the Google connector's Gmail sign-in. `hyperv_query` lists Hyper-V virtual
+machines, and `hyperv_admin` starts, stops, saves, restarts, pauses, resumes or
+checkpoints one of them (Windows only). `computer_use` moves the pointer,
+clicks, types and takes screenshots through pyautogui (opt-in `computer-use`
+extra, deliberately not part of `desktop`). Every tool that can change
+something or read private data asks for approval on each call.
+
+**Wake word for voice chat.** `jarvis chat --wake` waits for "hey jarvis"
+before recording, using openWakeWord offline with no API key (`wake-word`
+extra).
+
+**`jarvis approvals list|approve|deny`** resolves queued tool approvals from the
+terminal. It only changes requests that are still pending.
+
 **Apple Foundation Models (AFM 3)** — a new in-process `afm` engine drives
 Apple's `apple-fm-sdk` directly, with no HTTP hop and no second process whose
 CPU draw would land inside the same energy measurement window. Install with
@@ -67,6 +84,15 @@ stack with `mss`/`Pillow` fallbacks on other platforms. Adds the
 
 ### Fixed
 
+**Approvals could be flipped after they were decided.** The
+`/v1/approvals/{id}/approve` and `/deny` endpoints behind the desktop approvals
+bell updated any existing action, so a denied or expired request could later be
+approved. They now return 409 unless the action is still pending, and the bell
+refreshes its list when a decision is rejected.
+
+**The Windows desktop app opened blank console windows** each time it started
+`uv`, `ollama`, `git` or `where`. Those processes now start without a window.
+
 **Apple Silicon energy was never measured, only modelled.**
 `telemetry/energy_apple.py` imported `AppleSiliconMonitor` from
 `zeus.device.soc.apple`; no such class has ever existed there. The import
@@ -109,6 +135,28 @@ prompt-token count.
 the offer silently did nothing.
 
 ### Security
+
+**Tool confirmations actually ask.** `jarvis ask`, the HTTP server and the
+desktop app passed a confirmation callback that always answered yes, so
+confirmation-gated tools ran without anyone approving them. Those calls now
+wait in the approval queue until someone approves or denies them, and are
+denied after `security.approval_timeout_seconds` (default 300). Streaming chat
+tool calls run off the server's event loop, so a waiting call can't block the
+endpoint that approves it. `jarvis agents ask --yes` still approves instantly,
+but records every approval and denies the call if the record can't be written.
+`docker_shell_exec`, `file_write`, `apply_patch`, `agent_spawn`,
+`execute_pending_actions` and `channel_send` now require confirmation, and a
+regression test fails if any tool needing `system:admin` or `channel:send`
+doesn't. `computer_use` and `hyperv_admin` never reuse a remembered approval
+and are refused by `--yes`. `channel_list` and `channel_status` no longer
+require `system:admin`, since they only read.
+
+**Sensitive tool data is no longer saved to traces.** Every tool call was
+stored with its full arguments and result, including email bodies, typed text,
+clipboard contents and base64 browser screenshots. Saved traces now keep
+argument names but replace the values and results of confirmation-gated tools
+with `[redacted]`, and drop base64 data and strings over 8 KB for every tool.
+Live event subscribers still receive the full data.
 
 **WebSocket API keys no longer appear in request URLs.** Browser clients now
 send a marked, base64url-encoded credential through
