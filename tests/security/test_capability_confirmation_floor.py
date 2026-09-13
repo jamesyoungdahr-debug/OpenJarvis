@@ -5,13 +5,36 @@ nothing ever asks a human) can't silently reopen when a new tool is added.
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from openjarvis.core.registry import ToolRegistry
 from openjarvis.security.capabilities import DEFAULT_TOOL_CAPABILITIES, Capability
 
 # Ensure all built-in tools are registered before inspecting the registry.
+# Snapshot the result immediately (before any test's autouse _clean_registries
+# fixture wipes ToolRegistry) so _reregister_tools below can restore it without
+# reloading tool modules -- reloading would re-execute module-level state
+# (e.g. openjarvis.tools.agent_tools' in-memory agent dict) and corrupt other
+# tests that hold references to the pre-reload objects.
 import openjarvis.tools  # noqa: F401,E402
+
+_REGISTERED_TOOLS: dict[str, Any] = dict(ToolRegistry.items())
+
+
+@pytest.fixture(autouse=True)
+def _reregister_tools() -> None:
+    """Re-register tools after conftest's autouse _clean_registries wipes ToolRegistry.
+
+    conftest.py's _clean_registries clears ToolRegistry before every test.
+    Restore the snapshot taken at collection time instead of reloading any
+    module, so no other test's module-level state is disturbed.
+    """
+    for tool_name, tool_cls in _REGISTERED_TOOLS.items():
+        if not ToolRegistry.contains(tool_name):
+            ToolRegistry.register_value(tool_name, tool_cls)
+
 
 _HIGH_RISK_CAPABILITIES = {Capability.SYSTEM_ADMIN.value, Capability.CHANNEL_SEND.value}
 
