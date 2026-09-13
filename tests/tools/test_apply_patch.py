@@ -11,6 +11,7 @@ class TestApplyPatchTool:
         assert tool.spec.name == "apply_patch"
         assert tool.spec.category == "filesystem"
         assert "file:write" in tool.spec.required_capabilities
+        assert tool.spec.requires_confirmation is True
 
     def test_no_patch_provided(self):
         tool = ApplyPatchTool()

@@ -85,6 +85,7 @@ class TestChannelSendTool:
         assert tool.spec.category == "channel"
         assert "channel" in tool.spec.parameters["required"]
         assert "content" in tool.spec.parameters["required"]
+        assert tool.spec.requires_confirmation is True
 
     def test_send_success(self, channel):
         tool = ChannelSendTool(channel)

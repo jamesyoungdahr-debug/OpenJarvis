@@ -373,6 +373,11 @@ class ExecutePendingActionsTool(BaseTool):
                 },
             },
             category="proactive",
+            # Defense in depth: these actions were already approved in the
+            # proactive queue, but a human confirms again at the moment of
+            # actual execution rather than trusting an earlier queue-time
+            # decision alone.
+            requires_confirmation=True,
         )
 
     def execute(self, **params: Any) -> ToolResult:

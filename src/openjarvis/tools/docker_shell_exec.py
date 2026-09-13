@@ -91,7 +91,7 @@ class DockerShellExecTool(BaseTool):
                 "required": ["command"],
             },
             category="system",
-            requires_confirmation=False,
+            requires_confirmation=True,
             timeout_seconds=float(_MAX_TIMEOUT),
             required_capabilities=["code:execute"],
         )

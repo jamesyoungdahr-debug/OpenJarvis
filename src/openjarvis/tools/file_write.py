@@ -61,6 +61,7 @@ class FileWriteTool(BaseTool):
             },
             category="filesystem",
             required_capabilities=["file:write"],
+            requires_confirmation=True,
         )
 
     def _is_path_allowed(self, path: Path) -> bool:

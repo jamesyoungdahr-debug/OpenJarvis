@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from openjarvis.core.config import JarvisConfig
     from openjarvis.speech._stubs import SpeechBackend
+    from openjarvis.speech._wake_stubs import WakeWordBackend
 
 # Priority order: local first, then cloud
 DISCOVERY_ORDER = [
@@ -84,3 +85,31 @@ def get_speech_backend(config: "JarvisConfig") -> Optional["SpeechBackend"]:
             continue
 
     return None
+
+
+def get_wake_word_backend(config: "JarvisConfig") -> Optional["WakeWordBackend"]:
+    """Resolve the configured wake-word backend, or None if disabled/unavailable.
+
+    No auto-discovery across engines (only one implementation exists today) --
+    this only instantiates a backend when config.speech.wake_word is
+    non-empty, which is the feature's on/off switch.
+    """
+    if not config.speech.wake_word:
+        return None
+
+    import openjarvis.speech  # noqa: F401 -- trigger registration
+    from openjarvis.core.registry import WakeWordRegistry
+
+    key = config.speech.wake_word_backend
+    if not WakeWordRegistry.contains(key):
+        return None
+
+    try:
+        backend_cls = WakeWordRegistry.get(key)
+        backend = backend_cls(
+            keyword=config.speech.wake_word,
+            sensitivity=config.speech.wake_word_sensitivity,
+        )
+        return backend if backend.health() else None
+    except Exception:
+        return None

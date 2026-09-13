@@ -1441,6 +1441,8 @@ class SecurityConfig:
         default_factory=lambda: str(get_config_dir() / "audit.db")
     )
     enforce_tool_confirmation: bool = True
+    approval_timeout_seconds: float = 300.0
+    approval_poll_interval_seconds: float = 1.0
     merkle_audit: bool = True
     signing_key_path: str = ""
     ssrf_protection: bool = True
@@ -1628,6 +1630,12 @@ class SpeechConfig:
     tts_backend: str = "kokoro"  # "kokoro", "openai_tts", "cartesia"
     voice_id: str = "bm_george"
     voice_speed: float = 1.0
+    # Wake-word gating for `jarvis chat --wake`. Empty = feature disabled
+    # (default). Value is either a bundled openWakeWord keyword shorthand
+    # ("hey_jarvis") or a path to a custom .onnx/.tflite model.
+    wake_word: str = ""
+    wake_word_backend: str = "openwakeword"
+    wake_word_sensitivity: float = 0.5  # 0.0-1.0 score threshold
 
 
 @dataclass(slots=True)

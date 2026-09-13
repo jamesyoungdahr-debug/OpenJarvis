@@ -48,6 +48,7 @@ class ChannelSendTool(BaseTool):
                 "required": ["channel", "content"],
             },
             category="channel",
+            requires_confirmation=True,
         )
 
     def execute(self, **params: Any) -> ToolResult:

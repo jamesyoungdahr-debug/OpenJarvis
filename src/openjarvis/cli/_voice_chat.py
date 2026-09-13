@@ -33,6 +33,8 @@ class VoiceSession:
         self._config = config
         self._stt_resolved = False
         self._stt_backend: Any = None
+        self._wake_resolved = False
+        self._wake_backend: Any = None
         self._tts_backend: Any = None
         self._tts_attempted: set[str] = set()
         self._voice_prefs: tuple[str, str, float] | None = None
@@ -48,6 +50,17 @@ class VoiceSession:
             self._stt_backend = get_speech_backend(config)
             self._stt_resolved = True
         return self._stt_backend
+
+    def get_wake_backend(self) -> Any:
+        """Resolve and health-check the wake-word backend once, then reuse it."""
+        if not self._wake_resolved:
+            from openjarvis.core.config import load_config
+            from openjarvis.speech._discovery import get_wake_word_backend
+
+            config = self._config if self._config is not None else load_config()
+            self._wake_backend = get_wake_word_backend(config)
+            self._wake_resolved = True
+        return self._wake_backend
 
     def get_tts_backend(self) -> Any:
         """Return a cached healthy TTS backend, falling through once per key."""
@@ -173,6 +186,41 @@ def record_voice(
         return None
 
 
+def wait_for_wake(console: Any, session: VoiceSession) -> bool:
+    """Block until the configured wake word is heard.
+
+    Returns True on detection; False if interrupted, on error, or if no
+    wake-word backend is available (caller should treat False as VOICE_EXIT).
+    """
+    from openjarvis.speech.wake_word_io import listen_for_wake_word
+
+    backend = session.get_wake_backend()
+    if backend is None:
+        console.print(
+            "[red]No wake-word backend available. "
+            "Install with: pip install 'OpenJarvis[wake-word]', or set "
+            "speech.wake_word in config to enable.[/red]"
+        )
+        return False
+
+    console.print(
+        f"[dim cyan]Listening for wake word "
+        f"({_terminal_safe_text(backend.backend_id)})…[/dim cyan]"
+    )
+    try:
+        detection = listen_for_wake_word(backend)
+    except KeyboardInterrupt:
+        return False
+    except Exception as exc:
+        console.print(f"[red]Wake-word error: {_terminal_safe_text(exc)}[/red]")
+        return False
+
+    if detection is not None:
+        console.print("[bold magenta]Wake word detected — listening…[/bold magenta]")
+        return True
+    return False
+
+
 def speak(text: str, console: Any, session: VoiceSession | None = None) -> None:
     """Synthesize and play text, reusing a healthy backend for the session."""
     from openjarvis.speech.voice_io import play_wav
@@ -211,4 +259,11 @@ def speak(text: str, console: Any, session: VoiceSession | None = None) -> None:
     )
 
 
-__all__ = ["VOICE_EXIT", "VoiceSession", "read_voice_input", "record_voice", "speak"]
+__all__ = [
+    "VOICE_EXIT",
+    "VoiceSession",
+    "read_voice_input",
+    "record_voice",
+    "speak",
+    "wait_for_wake",
+]

@@ -13,7 +13,14 @@ from rich.markup import escape
 
 from openjarvis.cli._runtime_panel import runtime_cli_options
 from openjarvis.cli._tool_names import resolve_tool_names
-from openjarvis.cli._voice_chat import VOICE_EXIT, VoiceSession, read_voice_input, speak
+from openjarvis.cli._voice_chat import (
+    VOICE_EXIT,
+    VoiceSession,
+    read_voice_input,
+    record_voice,
+    speak,
+    wait_for_wake,
+)
 from openjarvis.core.config import load_config
 from openjarvis.core.events import EventBus
 from openjarvis.core.types import Message, Role
@@ -78,6 +85,16 @@ def _read_input(prompt: str = "You> ") -> Optional[str]:
     default=False,
     help="Enable voice I/O: mic input with silence detection + TTS response playback.",
 )
+@click.option(
+    "--wake",
+    "wake_mode",
+    is_flag=True,
+    default=False,
+    help=(
+        "Enable wake-word gating (implies --voice): waits for the configured "
+        "wake word before recording. Requires speech.wake_word to be set."
+    ),
+)
 @runtime_cli_options
 def chat(
     engine_key: str | None,
@@ -88,6 +105,7 @@ def chat(
     system_prompt: str | None,
     persona_name: str | None,
     voice_mode: bool,
+    wake_mode: bool,
     num_ctx: int | None,
     num_gpu: int | None,
     skip_runtime_panel: bool,
@@ -287,6 +305,10 @@ def chat(
                 f"{escape(str(exc))}[/yellow]"
             )
 
+    # --wake implies --voice: reuse the same banner/session/speak() paths,
+    # only the input-acquisition branch below differs.
+    voice_mode = voice_mode or wake_mode
+
     # Keep voice state outside the core chat path so picker/runtime changes can
     # be layered independently. Loaded speech models live for this session.
     voice_session = VoiceSession(config) if voice_mode else None
@@ -298,6 +320,11 @@ def chat(
         if voice_mode
         else ""
     )
+    if wake_mode:
+        voice_hint += (
+            "  [magenta]Wake-word mode ON[/magenta] — say the wake word to "
+            "start recording.\n"
+        )
     console.print(
         f"[green bold]OpenJarvis Chat[/green bold]\n"
         f"  Engine: [cyan]{_safe_rich_label(engine_name)}[/cyan]  "
@@ -365,7 +392,13 @@ def chat(
 
         if voice_mode:
             assert voice_session is not None
-            result = read_voice_input(console, voice_session)
+            if wake_mode:
+                if not wait_for_wake(console, voice_session):
+                    console.print("\n[dim]Goodbye![/dim]")
+                    break
+                result = record_voice(console, voice_session)
+            else:
+                result = read_voice_input(console, voice_session)
             if result is VOICE_EXIT:
                 console.print("\n[dim]Goodbye![/dim]")
                 break

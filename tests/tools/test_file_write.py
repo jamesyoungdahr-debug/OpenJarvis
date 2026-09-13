@@ -11,6 +11,7 @@ class TestFileWriteTool:
         assert tool.spec.name == "file_write"
         assert tool.spec.category == "filesystem"
         assert "file:write" in tool.spec.required_capabilities
+        assert tool.spec.requires_confirmation is True
 
     def test_no_path(self):
         tool = FileWriteTool()

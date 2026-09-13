@@ -27,6 +27,11 @@ def _approved_sms_draft(store: ApprovalStore, payload: dict[str, str]):
     return action
 
 
+def test_execute_pending_actions_requires_confirmation() -> None:
+    spec = ExecutePendingActionsTool().spec
+    assert spec.requires_confirmation is True
+
+
 def test_sms_draft_uses_documented_body_and_marks_success(tmp_path) -> None:
     store = ApprovalStore(str(tmp_path / "approvals.db"))
     action = _approved_sms_draft(

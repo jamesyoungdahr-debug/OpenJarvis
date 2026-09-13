@@ -77,6 +77,7 @@ class AgentSpawnTool(BaseTool):
             },
             category="agents",
             required_capabilities=["system:admin"],
+            requires_confirmation=True,
         )
 
     def execute(self, **params: Any) -> ToolResult:

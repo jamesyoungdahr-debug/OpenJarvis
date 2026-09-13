@@ -160,6 +160,8 @@ class TestSecurityConfig:
         assert sc.secret_scanner is True
         assert sc.pii_scanner is True
         assert sc.enforce_tool_confirmation is True
+        assert sc.approval_timeout_seconds == 300.0
+        assert sc.approval_poll_interval_seconds == 1.0
 
     def test_security_config_on_jarvis_config(self) -> None:
         cfg = JarvisConfig()

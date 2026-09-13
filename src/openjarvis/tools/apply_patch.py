@@ -217,6 +217,7 @@ class ApplyPatchTool(BaseTool):
             },
             category="filesystem",
             required_capabilities=["file:write"],
+            requires_confirmation=True,
         )
 
     def execute(self, **params: Any) -> ToolResult:

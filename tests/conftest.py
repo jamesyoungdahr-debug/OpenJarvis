@@ -49,6 +49,7 @@ from openjarvis.core.registry import (  # noqa: E402
     SpeechRegistry,
     ToolRegistry,
     TTSRegistry,
+    WakeWordRegistry,
 )
 
 
@@ -136,6 +137,7 @@ def _clean_registries() -> None:
     BenchmarkRegistry.clear()
     ChannelRegistry.clear()
     SpeechRegistry.clear()
+    WakeWordRegistry.clear()
     CompressionRegistry.clear()
     ConnectorRegistry.clear()
     TTSRegistry.clear()

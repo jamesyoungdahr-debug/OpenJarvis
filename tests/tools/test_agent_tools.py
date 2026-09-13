@@ -28,6 +28,7 @@ class TestAgentSpawnTool:
         assert spec.category == "agents"
         assert "system:admin" in spec.required_capabilities
         assert "agent_type" in spec.parameters["required"]
+        assert spec.requires_confirmation is True
 
     def test_spawn_creates_agent_entry(self):
         tool = AgentSpawnTool()

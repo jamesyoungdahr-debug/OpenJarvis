@@ -12,6 +12,13 @@ def test_speech_config_defaults():
     assert cfg.compute_type == "float16"
 
 
+def test_speech_config_wake_word_defaults():
+    cfg = SpeechConfig()
+    assert cfg.wake_word == ""
+    assert cfg.wake_word_backend == "openwakeword"
+    assert cfg.wake_word_sensitivity == 0.5
+
+
 def test_jarvis_config_has_speech():
     cfg = JarvisConfig()
     assert hasattr(cfg, "speech")

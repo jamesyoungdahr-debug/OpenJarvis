@@ -102,3 +102,74 @@ def test_explicit_unhealthy_backend_is_unavailable() -> None:
         return_value=backend,
     ):
         assert get_speech_backend(config) is None
+
+
+def test_get_wake_word_backend_disabled_by_default() -> None:
+    """An empty wake_word means the feature is off -- registry is never consulted."""
+    from openjarvis.speech._discovery import get_wake_word_backend
+
+    config = JarvisConfig()
+    assert config.speech.wake_word == ""
+
+    with patch("openjarvis.core.registry.WakeWordRegistry.contains") as mock_contains:
+        result = get_wake_word_backend(config)
+
+    assert result is None
+    mock_contains.assert_not_called()
+
+
+def test_get_wake_word_backend_resolves_when_enabled() -> None:
+    from openjarvis.speech._discovery import get_wake_word_backend
+
+    config = JarvisConfig()
+    config.speech.wake_word = "hey_jarvis"
+
+    mock_backend = MagicMock()
+    mock_backend.health.return_value = True
+    mock_backend_cls = MagicMock(return_value=mock_backend)
+
+    with (
+        patch("openjarvis.core.registry.WakeWordRegistry.contains", return_value=True),
+        patch(
+            "openjarvis.core.registry.WakeWordRegistry.get",
+            return_value=mock_backend_cls,
+        ),
+    ):
+        result = get_wake_word_backend(config)
+
+    assert result is mock_backend
+    mock_backend_cls.assert_called_once_with(keyword="hey_jarvis", sensitivity=0.5)
+
+
+def test_get_wake_word_backend_unhealthy_returns_none() -> None:
+    from openjarvis.speech._discovery import get_wake_word_backend
+
+    config = JarvisConfig()
+    config.speech.wake_word = "hey_jarvis"
+
+    mock_backend = MagicMock()
+    mock_backend.health.return_value = False
+    mock_backend_cls = MagicMock(return_value=mock_backend)
+
+    with (
+        patch("openjarvis.core.registry.WakeWordRegistry.contains", return_value=True),
+        patch(
+            "openjarvis.core.registry.WakeWordRegistry.get",
+            return_value=mock_backend_cls,
+        ),
+    ):
+        result = get_wake_word_backend(config)
+
+    assert result is None
+
+
+def test_get_wake_word_backend_unknown_registry_key_returns_none() -> None:
+    from openjarvis.speech._discovery import get_wake_word_backend
+
+    config = JarvisConfig()
+    config.speech.wake_word = "hey_jarvis"
+    config.speech.wake_word_backend = "nonexistent"
+
+    result = get_wake_word_backend(config)
+
+    assert result is None

@@ -233,8 +233,11 @@ fn resolve_bin(name: &str) -> String {
     // On Windows this uses `where.exe`, on Unix `which`.
     #[cfg(target_os = "windows")]
     {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         if let Ok(output) = std::process::Command::new("where")
             .arg(format!("{name}.exe"))
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
         {
             if output.status.success() {
@@ -816,6 +819,23 @@ fn format_uv_sync_failure(root: &std::path::Path, exit_code: Option<i32>, stderr
     )
 }
 
+/// Suppress the console window Windows would otherwise pop up when this
+/// GUI-subsystem process spawns a console-subsystem child (uv, ollama, git)
+/// with its stdio redirected to pipes -- redirecting stdio does not stop
+/// Windows from still allocating a visible, empty console for the child.
+/// No-op on other platforms.
+#[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
+fn hide_console_window(cmd: &mut tokio::process::Command) {
+    #[cfg(target_os = "windows")]
+    {
+        // tokio::process::Command exposes `creation_flags` as an inherent
+        // method on Windows; unlike std::process::Command it doesn't need
+        // `std::os::windows::process::CommandExt` in scope.
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+}
+
 /// Strip AppImage-injected environment from a subprocess command (#455).
 ///
 /// When the OpenJarvis desktop binary is shipped as an AppImage, the AppImage
@@ -935,6 +955,7 @@ async fn verify_openjarvis_rust_extension(
         .current_dir(root);
     prepare_subprocess_for_appimage(&mut cmd);
     add_cargo_bin_to_path(&mut cmd);
+    hide_console_window(&mut cmd);
     cmd.kill_on_drop(true);
 
     match cmd.output().await {
@@ -1026,6 +1047,7 @@ async fn boot_backend(backend: SharedBackend, status: SharedStatus) {
                 .stderr(std::process::Stdio::null());
             // Avoid LD_LIBRARY_PATH leak when running inside an AppImage (#455).
             prepare_subprocess_for_appimage(&mut sidecar_cmd);
+            hide_console_window(&mut sidecar_cmd);
             match spawn_owned_child(&mut sidecar_cmd) {
                 Ok(child) => Some(child),
                 Err(_) => None,
@@ -1259,6 +1281,7 @@ async fn boot_backend(backend: SharedBackend, status: SharedStatus) {
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::piped());
         prepare_subprocess_for_appimage(&mut clone_cmd);
+        hide_console_window(&mut clone_cmd);
         let clone_result = spawn_owned_child(&mut clone_cmd);
 
         match clone_result {
@@ -1478,6 +1501,7 @@ async fn boot_backend(backend: SharedBackend, status: SharedStatus) {
     // Avoid LD_LIBRARY_PATH leak when running inside an AppImage (#455).
     prepare_subprocess_for_appimage(&mut sync_cmd);
     add_cargo_bin_to_path(&mut sync_cmd);
+    hide_console_window(&mut sync_cmd);
     sync_cmd.kill_on_drop(true);
     let sync_output = sync_cmd.output().await;
     match sync_output {
@@ -1540,6 +1564,7 @@ async fn boot_backend(backend: SharedBackend, status: SharedStatus) {
     // do this BEFORE cmd.env() calls below so our explicit cloud-key env
     // additions aren't accidentally stripped.
     prepare_subprocess_for_appimage(&mut cmd);
+    hide_console_window(&mut cmd);
 
     // Inject cloud API keys from secure desktop storage.
     for (key, value) in cloud_keys_for_inference(&cfg) {
@@ -1915,6 +1940,7 @@ async fn run_jarvis_command(args: Vec<String>) -> Result<String, String> {
     if let Some(ref root) = find_project_root() {
         cmd.current_dir(root);
     }
+    hide_console_window(&mut cmd);
 
     let is_serve = args.first().map(|a| a.as_str() == "serve").unwrap_or(false);
 

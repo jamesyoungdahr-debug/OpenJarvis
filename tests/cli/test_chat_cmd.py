@@ -18,7 +18,13 @@ from openjarvis.agents._stubs import (
     BaseAgent,
     ToolUsingAgent,
 )
-from openjarvis.cli._voice_chat import VOICE_EXIT, VoiceSession, record_voice, speak
+from openjarvis.cli._voice_chat import (
+    VOICE_EXIT,
+    VoiceSession,
+    record_voice,
+    speak,
+    wait_for_wake,
+)
 from openjarvis.cli.chat_cmd import _read_input, chat
 from openjarvis.core.config import JarvisConfig
 from openjarvis.core.events import Event, EventBus, EventType
@@ -84,6 +90,7 @@ class TestChatCommand:
         assert "--agent" in result.output
         assert "--tools" in result.output
         assert "--system" in result.output
+        assert "--wake" in result.output
 
     def test_slash_commands_listed(self) -> None:
         result = CliRunner().invoke(chat, ["--help"])
@@ -141,6 +148,60 @@ class TestChatCommand:
         assert result.exit_code == 0
         assert result.exception is None
         assert "Goodbye!" in result.output
+
+    def test_wake_mode_implies_voice_mode(self) -> None:
+        engine = MagicMock()
+        engine.engine_id = "mock"
+        config = JarvisConfig()
+        config.intelligence.default_model = "test-model"
+
+        with (
+            patch("openjarvis.cli.chat_cmd.load_config", return_value=config),
+            patch("openjarvis.engine.get_engine", return_value=("mock", engine)),
+            patch("openjarvis.intelligence.register_builtin_models"),
+            patch(
+                "openjarvis.cli.chat_cmd.wait_for_wake",
+                return_value=False,
+            ),
+        ):
+            result = CliRunner().invoke(
+                chat,
+                ["--wake", "--model", "test-model"],
+            )
+
+        assert result.exit_code == 0
+        assert "Voice mode ON" in result.output
+        assert "Wake-word mode ON" in result.output
+        assert "Goodbye!" in result.output
+
+    def test_wake_mode_calls_wait_for_wake_then_record_voice(self) -> None:
+        engine = MagicMock()
+        engine.engine_id = "mock"
+        engine.generate.return_value = {"content": "hi there"}
+        config = JarvisConfig()
+        config.intelligence.default_model = "test-model"
+
+        call_order: list[str] = []
+
+        def _wait_for_wake(console, session):
+            call_order.append("wake")
+            return len(call_order) == 1  # True once, then False to end the loop
+
+        def _record_voice(console, session):
+            call_order.append("record")
+            return "hello"
+
+        with (
+            patch("openjarvis.cli.chat_cmd.load_config", return_value=config),
+            patch("openjarvis.engine.get_engine", return_value=("mock", engine)),
+            patch("openjarvis.intelligence.register_builtin_models"),
+            patch("openjarvis.cli.chat_cmd.wait_for_wake", side_effect=_wait_for_wake),
+            patch("openjarvis.cli.chat_cmd.record_voice", side_effect=_record_voice),
+        ):
+            result = CliRunner().invoke(chat, ["--wake", "--model", "test-model"])
+
+        assert result.exit_code == 0
+        assert call_order == ["wake", "record", "wake"]
 
 
 class TestReadInput:
@@ -269,6 +330,53 @@ class TestVoiceInput:
             ),
         ):
             assert record_voice(MagicMock(), session) is VOICE_EXIT
+
+    def test_wait_for_wake_returns_true_on_detection(self) -> None:
+        from openjarvis.speech._wake_stubs import WakeDetection
+
+        backend = MagicMock(backend_id="openwakeword")
+        session = VoiceSession(JarvisConfig())
+
+        with (
+            patch(
+                "openjarvis.speech._discovery.get_wake_word_backend",
+                return_value=backend,
+            ),
+            patch(
+                "openjarvis.speech.wake_word_io.listen_for_wake_word",
+                return_value=WakeDetection(keyword="hey_jarvis", score=0.9),
+            ),
+        ):
+            assert wait_for_wake(MagicMock(), session) is True
+
+    def test_wait_for_wake_no_backend_returns_false(self) -> None:
+        session = VoiceSession(JarvisConfig())
+        console = MagicMock()
+
+        with patch(
+            "openjarvis.speech._discovery.get_wake_word_backend",
+            return_value=None,
+        ):
+            assert wait_for_wake(console, session) is False
+
+        console.print.assert_called_once()
+        assert "wake-word" in console.print.call_args[0][0].lower()
+
+    def test_wait_for_wake_keyboard_interrupt_returns_false(self) -> None:
+        backend = MagicMock(backend_id="openwakeword")
+        session = VoiceSession(JarvisConfig())
+
+        with (
+            patch(
+                "openjarvis.speech._discovery.get_wake_word_backend",
+                return_value=backend,
+            ),
+            patch(
+                "openjarvis.speech.wake_word_io.listen_for_wake_word",
+                side_effect=KeyboardInterrupt,
+            ),
+        ):
+            assert wait_for_wake(MagicMock(), session) is False
 
     def test_microphone_system_exit_is_not_swallowed(self) -> None:
         backend = MagicMock()
