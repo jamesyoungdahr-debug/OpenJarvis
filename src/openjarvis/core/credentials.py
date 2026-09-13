@@ -63,6 +63,7 @@ TOOL_CREDENTIALS: dict[str, list[str]] = {
     "xmpp": ["XMPP_JID", "XMPP_PASSWORD"],
     "feishu": ["FEISHU_APP_ID", "FEISHU_APP_SECRET"],
     "nostr": ["NOSTR_PRIVATE_KEY"],
+    "send_email": ["SMTP_USERNAME", "SMTP_PASSWORD"],
 }
 
 
@@ -74,6 +75,8 @@ TOOL_CREDENTIALS: dict[str, list[str]] = {
 # and both listed keys only raise limits or result quality.
 OPTIONAL_TOOL_CREDENTIALS: dict[str, frozenset[str]] = {
     "web_search": frozenset({"TAVILY_API_KEY", "YOUDOTCOM_API_KEY"}),
+    # The Gmail backend sends through the Google connector and needs no SMTP keys.
+    "send_email": frozenset({"SMTP_USERNAME", "SMTP_PASSWORD"}),
 }
 
 

@@ -1119,6 +1119,18 @@ class WeatherToolConfig:
 
 
 @dataclass(slots=True)
+class SendEmailToolConfig:
+    """send_email tool settings (the SMTP password stays outside config.toml)."""
+
+    backend: str = "smtp"  # "smtp" or "gmail" (uses the Google connector sign-in)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_security: str = "starttls"  # "starttls", "ssl", or "none"
+    from_address: str = ""
+    max_recipients: int = 10
+
+
+@dataclass(slots=True)
 class ToolsConfig:
     """Tools primitive settings — wraps storage and MCP configuration."""
 
@@ -1126,6 +1138,7 @@ class ToolsConfig:
     mcp: MCPConfig = field(default_factory=MCPConfig)
     browser: BrowserConfig = field(default_factory=BrowserConfig)
     weather: WeatherToolConfig = field(default_factory=WeatherToolConfig)
+    send_email: SendEmailToolConfig = field(default_factory=SendEmailToolConfig)
     enabled: str = ""  # comma-separated default tools
 
 
@@ -2306,6 +2319,15 @@ enabled = true
 # units = "metric"             # metric or imperial
 # lang = "en"                  # OpenWeatherMap language code
 
+# SMTP credentials belong in credentials.toml or the environment, not here.
+# [tools.send_email]
+# backend = "smtp"             # smtp or gmail (uses the Google connector sign-in)
+# smtp_host = ""
+# smtp_port = 587
+# smtp_security = "starttls"   # starttls, ssl, or none
+# from_address = ""
+# max_recipients = 10
+
 [server]
 # Loopback is safe for local use and works without API authentication.
 host = "127.0.0.1"
@@ -2480,6 +2502,7 @@ __all__ = [
     "SandboxConfig",
     "SchedulerConfig",
     "SecurityConfig",
+    "SendEmailToolConfig",
     "ServerConfig",
     "SessionConfig",
     "SignalChannelConfig",
