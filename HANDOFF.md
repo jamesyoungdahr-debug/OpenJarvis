@@ -111,6 +111,23 @@ it after every `uv sync`, which removes it. Test results are below.
   Windows review of the Linux commits; covered by
   `tests/agents/test_proactive_agent_run.py`.
 
+## Windows live tests and decisions (2026-09-14)
+
+Liam delegated the plan's seven open decisions to Claude on 2026-09-14. The
+outcomes are under "Resolved decisions" in the plan.
+
+- openWakeWord downloaded its `hey_jarvis` models (7 files, 9.2 MB) into a
+  throwaway venv, and the backend loaded `hey_jarvis` on ONNX; silence scored
+  0.0.
+- `computer_use` moved the pointer 40 px and back to the exact start, pressed
+  Shift, and rejected an off-screen point. No clicks or typing.
+- The approvals bell in the web frontend (Vite dev server against `jarvis serve`
+  with a throwaway `OPENJARVIS_HOME`): approving a queued request from the bell
+  wrote `approved` to `approvals.db`, and approving a request that had already
+  been approved elsewhere returned 409 while the bell refreshed and dropped it.
+- `POST /v1/agents` and `DELETE /v1/agents/{id}` now return 200 and record
+  approvals with source `api_routes.agent_admin`.
+
 ## Issues found on Linux (2026-09-13, fixed 2026-09-14)
 
 - **`desktop` couldn't install on Linux with Python 3.12 or newer.**
@@ -167,12 +184,10 @@ Fixed during the run:
   `openjarvis.tools` module and replaces `HyperVError` with a new class. The
   tests now reach it through the live module.
 
-Still failing, waiting for Liam: `test_create_agent`. The branch made
-`agent_spawn` require confirmation, and `POST /v1/agents` runs it with no
-confirmation callback, so the route now returns 400 ("requires confirmation but
-no confirmation callback is available"). `agent_kill` was already gated
-upstream, so `DELETE /v1/agents/{id}` has the same limit. See open decision 5
-in the plan.
+Fixed since: `test_create_agent`. The branch made `agent_spawn` require
+confirmation, and `POST /v1/agents` ran it with no confirmation callback, so the
+route returned 400. The agent admin routes now auto-approve `agent_spawn` and
+`agent_kill` with an audit record (`b9762443`, decision 5 in the plan).
 
 ## Linux live tests (2026-09-14)
 

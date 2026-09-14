@@ -85,6 +85,13 @@ approvals bell) already existed, but only the proactive agent used it.
   those requests as notified. Goal: already-approved work still happens and
   reaches the user, with an audit record for each step, while anything the
   model tries on its own still needs a person.
+- **Agent admin API calls are approved and recorded.** Why: once `agent_spawn`
+  and `agent_kill` required confirmation, `POST /v1/agents` and
+  `DELETE /v1/agents/{id}` always returned 400, because a direct API call had no
+  way to answer. Queueing a second approval would leave the request hanging.
+  Goal: someone calling the admin API can still create and stop agents, every
+  such approval is recorded, and the capability and rate-limit checks still
+  decide who may call it.
 
 ## New tools
 

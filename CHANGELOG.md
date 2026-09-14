@@ -84,6 +84,13 @@ stack with `mss`/`Pillow` fallbacks on other platforms. Adds the
 
 ### Fixed
 
+**Creating or stopping an agent over the REST API always failed.**
+`POST /v1/agents` and `DELETE /v1/agents/{id}` run `agent_spawn` and
+`agent_kill`, which require confirmation, but the routes passed no confirmation
+callback, so both returned 400. The API caller is making the call directly, so
+these admin routes now approve those two tools at once and record each
+approval; capability and rate-limit checks still run first.
+
 **The scheduled proactive agent couldn't act or notify.** Its run executes
 actions a person already approved (trivial tier or a remembered "always
 approve") and then sends the user a notification, but both tools require
