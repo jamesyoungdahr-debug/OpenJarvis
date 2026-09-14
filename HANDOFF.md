@@ -166,6 +166,15 @@ no confirmation callback is available"). `agent_kill` was already gated
 upstream, so `DELETE /v1/agents/{id}` has the same limit. See open decision 5
 in the plan.
 
+## Linux live tests (2026-09-14)
+
+- `notify` works on KDE Wayland. plyer falls back to `notify-send` because the
+  Python `dbus` package isn't in `.venv` (it prints a warning), and an empty
+  title is rejected. Log:
+  `/home/liam/Projects/logs/jarvis/phase3-notify-20260914-0739.log`.
+- The web approvals bell can't run yet: `node` and `npm` aren't installed
+  (open decision 6 in the plan). The REST side is tested with `curl` instead.
+
 ## Next steps
 
 The approved plan (2026-09-14) lives in

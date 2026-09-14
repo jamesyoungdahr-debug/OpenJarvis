@@ -58,7 +58,10 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
   point jarvis only at the model the lease names, and release it afterwards.
 - [ ] Approvals bell: run `jarvis serve` and the web frontend (`vite`), approve
   a gated tool from the bell, and check that a second decision returns 409.
-- [ ] `notify`: should work, since `notify-send` is present.
+  `node` and `npm` aren't installed, so the bell UI waits for open decision 6;
+  the REST side (pending, approve, 409) can be tested with `curl`.
+- [x] `notify`: works. plyer falls back to `notify-send` because python-dbus
+  isn't in `.venv`, and an empty title is rejected.
 - [ ] `clipboard`: needs `wl-clipboard`, which isn't installed. Liam decides.
 - [ ] `computer_use` pointer and keyboard actions: pyautogui mostly fails on
   Wayland. Ask Liam first, since it moves his mouse, and record what happens.
@@ -93,6 +96,8 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
    Queue an approval for REST admin calls (it would show in the bell),
    auto-approve them with an audit row since the caller is already
    capability-gated, or accept the 400 and update the test?
+6. Install `nodejs` and `npm` (`sudo pacman -S nodejs npm`) so the web frontend
+   and its approvals bell can be tested here?
 
 ## Decisions
 
@@ -118,3 +123,5 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
   otherwise approve its own queued action.
 - 2026-09-14: `POST /v1/agents` stays as it is until Liam decides (open
   decision 5).
+- 2026-09-14: With no Node on this machine, the approvals REST flow is tested
+  with `curl`, and the bell UI waits for Liam (open decision 6).
