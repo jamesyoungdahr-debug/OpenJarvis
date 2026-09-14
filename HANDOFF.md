@@ -127,6 +127,13 @@ outcomes are under "Resolved decisions" in the plan.
   been approved elsewhere returned 409 while the bell refreshed and dropped it.
 - `POST /v1/agents` and `DELETE /v1/agents/{id}` now return 200 and record
   approvals with source `api_routes.agent_admin`.
+- `hyperv_admin` on a throwaway VM (`openjarvis-disposable-test`, Gen 2,
+  512 MB, no disk or network, removed afterwards): `start`, `pause`, `resume`,
+  `save`, `start` from saved, a named `checkpoint`, `restart`, `stop` and
+  `turn_off` all worked, and `hyperv_query` showed each state. `turn_off` on a
+  VM that was already off first failed with "not valid JSON", because
+  PowerShell printed a warning to stdout before the JSON. The shared runner now
+  silences warning, information and progress output, and a retest passed.
 
 ## Issues found on Linux (2026-09-13, fixed 2026-09-14)
 

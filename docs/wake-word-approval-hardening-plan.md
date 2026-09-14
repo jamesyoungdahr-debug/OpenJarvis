@@ -80,8 +80,10 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
   no Linux driver yet (kernel: "No matching ASoC machine driver found" for
   `acp70`), and its "Internal Microphone" input is only noise. Liam will fix
   the mic later; use a USB mic or Windows until then.
-- [ ] On Windows: `hyperv_admin` state changes on a disposable VM, and the
-  Windows desktop app's approvals bell.
+- [x] On Windows: `hyperv_admin` state changes on a throwaway VM. All nine
+  steps worked after a fix for PowerShell warnings on stdout (see HANDOFF.md).
+- [ ] On Windows: the desktop app's approvals bell. The web frontend's bell was
+  tested instead (decision 6).
 
 ## Phase 5: pull request (only when Liam asks)
 
@@ -145,3 +147,6 @@ Liam delegated these to Claude on 2026-09-14.
 - 2026-09-14: Liam delegated the seven open decisions to Claude. The outcomes
   are under "Resolved decisions", and the Windows live tests for decisions 1, 3
   and 6 passed.
+- 2026-09-14: Liam allowed Claude to create a throwaway Hyper-V VM for the
+  `hyperv_admin` live test, skipped the SMTP and microphone tests for now, and
+  asked to push the branch.

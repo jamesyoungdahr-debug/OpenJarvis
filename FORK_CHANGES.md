@@ -194,18 +194,23 @@ claims.
 
 ## Testing status
 
-Every change has unit tests. Live-tested so far, on Windows:
+Every change has unit tests. Live-tested so far on Windows:
 
 - the approval queue, approved and denied through the real `jarvis approvals`
   command, including refusing to approve a request that had already timed out
   and been denied
-- `notify`, `clipboard` (read and write), and `computer_use` screenshots
-- `hyperv_query` against real Hyper-V, and `hyperv_admin` rejecting an unknown
-  VM and a wildcard name
+- `notify`, `clipboard` (read and write), and `computer_use` screenshots, plus
+  a small pointer move and a key press
+- `hyperv_query` against real Hyper-V, and every `hyperv_admin` action on a
+  throwaway VM
 - `jarvis ask` with a real local model (LM Studio on the RTX 4090): an approved
   `file_write` wrote the file, and an unanswered one timed out and wrote nothing
+- the approvals bell in the web frontend, including the refresh after a stale
+  decision was rejected
+- openWakeWord loading its `hey_jarvis` model on ONNX
+
+Live-tested on Linux: `notify`, `jarvis agents ask --yes` recording its
+approval, and the approvals REST flow behind the bell.
 
 Still to test live before any pull request: the wake word with a microphone,
-approvals from the desktop app, `--yes` audit records,
-`send_email` over SMTP and Gmail, `computer_use` pointer and keyboard actions,
-and `hyperv_admin` state changes on a disposable VM.
+the approvals bell in the desktop app, and `send_email` over SMTP and Gmail.
