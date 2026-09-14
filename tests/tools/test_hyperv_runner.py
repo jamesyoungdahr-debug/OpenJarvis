@@ -164,3 +164,19 @@ def test_timeout_raises():
     with patch(_PLATFORM, "win32"), patch(_RUN, side_effect=error):
         with pytest.raises(_hyperv.HyperVError, match="timed out"):
             _hyperv.run_hyperv_json("Get-VM", timeout_seconds=5)
+
+
+def test_script_silences_non_json_output_streams():
+    # A warning such as "The virtual machine is already in the specified
+    # state." would otherwise be printed to stdout ahead of the JSON.
+    with (
+        patch(_PLATFORM, "win32"),
+        patch(_RUN, return_value=_completed(stdout=b"[]")) as run,
+    ):
+        _hyperv.run_hyperv_json("Get-VM")
+
+    script = run.call_args.args[0][4]
+    assert "$WarningPreference = 'SilentlyContinue'" in script
+    assert "$InformationPreference = 'SilentlyContinue'" in script
+    assert "$ProgressPreference = 'SilentlyContinue'" in script
+    assert script.index("$WarningPreference") < script.index("Get-VM")

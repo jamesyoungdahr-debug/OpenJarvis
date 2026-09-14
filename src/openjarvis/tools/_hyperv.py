@@ -13,9 +13,15 @@ from typing import Any
 _ENV_PREFIX = "OPENJARVIS_HYPERV_"
 _VALUE_NAME_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
 _MAX_OUTPUT_BYTES = 1_000_000
+# Only the script's JSON may reach stdout: with -Command, PowerShell prints
+# warnings (e.g. "The virtual machine is already in the specified state."),
+# information and progress records there too, which breaks JSON parsing.
 _SCRIPT_PREAMBLE = (
     "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n"
     "$ErrorActionPreference = 'Stop'\n"
+    "$WarningPreference = 'SilentlyContinue'\n"
+    "$InformationPreference = 'SilentlyContinue'\n"
+    "$ProgressPreference = 'SilentlyContinue'\n"
 )
 
 
