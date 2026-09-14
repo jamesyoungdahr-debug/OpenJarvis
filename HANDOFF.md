@@ -90,7 +90,7 @@ system Python is 3.14, which the project doesn't support (`>=3.10,<3.14`).
 `uv`, `rustup` and `ruff` come from Arch's `extra` repo. `uv sync --extra dev
 --extra framework-comparison --extra server` (the same extras as `make setup`
 and CI) works and builds `.venv` on Python 3.12.13. `uv sync --extra desktop`
-fails; see "Open issues" below. `rust/rust-toolchain.toml` pins Rust 1.88,
+failed until the 2026-09-14 fix below; it works now. `rust/rust-toolchain.toml` pins Rust 1.88,
 which rustup installed, and `maturin develop` builds `openjarvis_rust`. The
 first full pytest run was cut off by a session restart and left no results.
 
@@ -103,35 +103,27 @@ first full pytest run was cut off by a session restart and left no results.
 - The REST approve/deny endpoints return 409 for anything not pending, and the
   desktop approvals bell refreshes when a decision is rejected (`9c0c125c`).
 
-## Open issues found on Linux (2026-09-13)
+## Issues found on Linux (2026-09-13, fixed 2026-09-14)
 
-- **`desktop` can't install on Linux with Python 3.12 or newer.** This branch
-  added `openwakeword>=0.6` to the `desktop` extra. On Linux, openwakeword
-  0.6.0 (the latest release) requires `tflite-runtime`, whose newest wheels
-  stop at Python 3.11. That breaks `uv sync --extra desktop`,
-  `scripts/quickstart.sh` and the desktop app's own `uv sync` in
-  `frontend/src-tauri/src/lib.rs`. Linux CI (`ci.yml`) doesn't install
-  `desktop`, so it won't catch this. `speech/openwakeword_backend.py` never
-  passes `inference_framework`, so openWakeWord defaults to tflite and only
-  falls back to onnx when `tflite_runtime` fails to import, which is why it
-  worked on Windows. On 2026-09-14 Liam chose to combine the guards. The edits
-  are on disk, uncommitted and untested, and their diffs match the specs: the
-  backend passes `inference_framework="onnx"` (tflite only when the keyword
-  ends in `.tflite`), with two new tests in
-  `tests/speech/test_openwakeword_backend.py`; `desktop` marks openwakeword
-  `sys_platform != 'linux' or python_version < '3.12'`; and a new `[tool.uv]`
-  section sets `override-dependencies = ["tflite-runtime; sys_platform ==
-  'never'"]`. Liam stopped the work before `uv lock`, the test run and the
-  commit.
-- **One lint error.** `ruff check` reports I001 (unsorted import block) in
-  `tests/security/test_capability_confirmation_floor.py`. `ruff format
-  --check` is clean. A fix moving the two `openjarvis` imports below
-  `import openjarvis.tools` is on disk, uncommitted, but it left two blank
-  lines after `import pytest`; remove one, then rerun `ruff check`.
-- **`uv.lock` is out of date.** `uv sync` regenerated it (+203/-1 lines, the
-  branch's new dependencies such as openwakeword, plyer, pyautogui and
-  tflite-runtime). The change is left uncommitted. Rerun `uv lock` after the
-  `pyproject.toml` fix above so tflite-runtime drops out, then commit it.
+- **`desktop` couldn't install on Linux with Python 3.12 or newer.**
+  openWakeWord 0.6.0 requires `tflite-runtime` on Linux, whose wheels stop at
+  Python 3.11. Fixed with the combined guards Liam chose on 2026-09-14: the
+  backend passes `inference_framework="onnx"` (tflite only for a `.tflite`
+  keyword), `desktop` marks openwakeword
+  `sys_platform != 'linux' or python_version < '3.12'`, and `[tool.uv]`
+  `override-dependencies` drops `tflite-runtime`. Verified on Python 3.12.13:
+  `uv sync` with `desktop` and `wake-word` installs openwakeword and
+  onnxruntime but not tflite; a pip dry run of `.[desktop]` resolves without
+  openwakeword; a pip dry run of `.[wake-word]` still fails on
+  `tflite-runtime`, as `pyproject.toml` documents. openWakeWord hasn't loaded
+  a real model yet, because downloading `hey_jarvis` waits for Liam's OK.
+- **Lint:** the I001 error in
+  `tests/security/test_capability_confirmation_floor.py` is fixed.
+  `ruff check` and `ruff format --check` pass, and `tests/speech` plus the
+  confirmation-floor test pass (91 passed, 6 skipped).
+- **`uv.lock`** is regenerated with the override. It still lists
+  `tflite-runtime` 2.14.0, but only behind the never-true marker, so
+  `uv export` and `uv sync --all-extras --dry-run` never install it.
 
 ## Next steps
 

@@ -114,3 +114,27 @@ def test_reset_calls_model_reset():
 def test_reset_before_model_loaded_does_not_raise():
     backend = OpenWakeWordBackend()
     backend.reset()  # should not raise even though no model has been loaded yet
+
+
+def test_model_loads_with_onnx_by_default():
+    with patch(
+        "openjarvis.speech.openwakeword_backend._OWWModel",
+        return_value=MagicMock(),
+    ) as model_cls:
+        backend = OpenWakeWordBackend(keyword="hey_jarvis")
+        backend._ensure_model()
+        model_cls.assert_called_once_with(
+            wakeword_models=["hey_jarvis"], inference_framework="onnx"
+        )
+
+
+def test_custom_tflite_model_uses_tflite():
+    with patch(
+        "openjarvis.speech.openwakeword_backend._OWWModel",
+        return_value=MagicMock(),
+    ) as model_cls:
+        backend = OpenWakeWordBackend(keyword="/models/custom.tflite")
+        backend._ensure_model()
+        model_cls.assert_called_once_with(
+            wakeword_models=["/models/custom.tflite"], inference_framework="tflite"
+        )

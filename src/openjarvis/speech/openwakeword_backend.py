@@ -56,7 +56,13 @@ class OpenWakeWordBackend(WakeWordBackend):
                     "Install with: pip install 'OpenJarvis[wake-word]'"
                 )
                 raise ImportError(self._last_error)
-            self._model = _OWWModel(wakeword_models=[self._keyword])
+            # openWakeWord defaults to tflite, whose runtime has no wheels past
+            # Python 3.11 on Linux; the bundled models also ship as ONNX.
+            framework = "tflite" if self._keyword.endswith(".tflite") else "onnx"
+            self._model = _OWWModel(
+                wakeword_models=[self._keyword],
+                inference_framework=framework,
+            )
         self._last_error = None
         return self._model
 

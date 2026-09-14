@@ -9,9 +9,6 @@ from typing import Any
 
 import pytest
 
-from openjarvis.core.registry import ToolRegistry
-from openjarvis.security.capabilities import DEFAULT_TOOL_CAPABILITIES, Capability
-
 # Ensure all built-in tools are registered before inspecting the registry.
 # Snapshot the result immediately (before any test's autouse _clean_registries
 # fixture wipes ToolRegistry) so _reregister_tools below can restore it without
@@ -19,6 +16,8 @@ from openjarvis.security.capabilities import DEFAULT_TOOL_CAPABILITIES, Capabili
 # (e.g. openjarvis.tools.agent_tools' in-memory agent dict) and corrupt other
 # tests that hold references to the pre-reload objects.
 import openjarvis.tools  # noqa: F401,E402
+from openjarvis.core.registry import ToolRegistry
+from openjarvis.security.capabilities import DEFAULT_TOOL_CAPABILITIES, Capability
 
 _REGISTERED_TOOLS: dict[str, Any] = dict(ToolRegistry.items())
 

@@ -1,8 +1,8 @@
 # Plan: wake word, approval hardening and new tools
 
 - **Date:** 2026-09-14
-- **Status:** approved by Liam on 2026-09-14. Phase 1 is in progress: the
-  openwakeword and lint fix edits are on disk, uncommitted and untested.
+- **Status:** approved by Liam on 2026-09-14. Phase 1 is done except loading a
+  real openWakeWord model, which waits for Liam. Phase 2 is next.
 - **Branch:** `feat/wake-word-and-approval-hardening` in
   `/home/liam/Projects/jarvis` (the Strix Halo). Cold-start notes are in
   `HANDOFF.md`.
@@ -17,14 +17,16 @@ Linux a full git bundle in `/home/liam/Projects/backups/jarvis`, named
 
 ## Phase 1: finish the paused fix
 
-- [ ] Remove the extra blank line in
+- [x] Remove the extra blank line in
   `tests/security/test_capability_confirmation_floor.py`.
-- [ ] Run `uv lock` and confirm `tflite-runtime` is gone from `uv.lock`.
-- [ ] Prove the fix on Linux with Python 3.12: `uv sync` with `--extra desktop`
+- [x] Run `uv lock`. `tflite-runtime` stays listed in `uv.lock`, but only behind
+  the never-true marker, so it never installs.
+- [x] Prove the fix on Linux with Python 3.12: `uv sync` with `--extra desktop`
   added installs; `uv sync --extra wake-word` installs openwakeword without
   tflite; a pip dry run of `.[desktop]` in a throwaway venv skips openwakeword.
-- [ ] Run `ruff check`, `ruff format --check` and `pytest tests/speech`.
-- [ ] Add a `CHANGELOG.md` Fixed entry and a `FORK_CHANGES.md` entry saying why,
+- [x] Run `ruff check`, `ruff format --check` and `pytest tests/speech` (91
+  passed, 6 skipped, with the confirmation-floor test).
+- [x] Add a `CHANGELOG.md` Fixed entry and a `FORK_CHANGES.md` entry saying why,
   then update `HANDOFF.md` and this plan.
 
 ## Phase 2: full test suite on Linux
@@ -100,3 +102,7 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
   or release.
 - 2026-09-14: Liam approved this plan, and it moved from `HANDOFF.md` into this
   file under the "Saving plans" rule.
+- 2026-09-14: Liam handed over for the night: work through the plan without
+  him, log after every change, and push nothing.
+- 2026-09-14: `uv.lock` keeps `tflite-runtime` behind the override's never-true
+  marker. Accepted, since uv never installs it.

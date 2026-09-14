@@ -145,6 +145,21 @@ Why: voice chat required pressing Enter before every turn. Goal: say "hey
 jarvis" and start talking, hands-free. It uses openWakeWord, which runs offline
 and needs no API key, in keeping with OpenJarvis being local-first.
 
+## Wake word on Linux with current Python
+
+Why: the `desktop` extra added openWakeWord, which requires `tflite-runtime` on
+Linux, and `tflite-runtime` has no wheels past Python 3.11. On Linux with
+Python 3.12 or newer that broke every `desktop` install, including
+`scripts/quickstart.sh` and the desktop app's own `uv sync`. The backend also
+never chose an inference framework, so openWakeWord defaulted to tflite and
+only fell back to ONNX because tflite was missing. Goal: `desktop` installs
+everywhere, and the wake word still works on current Python when the
+`wake-word` extra is installed with uv. The backend now asks for ONNX (tflite
+only for a custom `.tflite` model), `desktop` skips openWakeWord on Linux with
+Python 3.12+, and uv drops `tflite-runtime` with an override. A pip install of
+the `wake-word` extra on Linux with Python 3.12+ still fails, and
+`pyproject.toml` says so.
+
 ## Windows desktop app fix
 
 Why: on Windows, the desktop app opened a blank console window each time it

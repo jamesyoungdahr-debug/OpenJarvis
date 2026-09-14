@@ -99,7 +99,9 @@ desktop = [
     "numpy>=1.24",
     "sounddevice>=0.5",
     "soundfile>=0.12",
-    "openwakeword>=0.6",
+    # openwakeword needs tflite-runtime on Linux, which has no wheels past Python
+    # 3.11, and pip can't skip it. Use the wake-word extra with uv there instead.
+    "openwakeword>=0.6; sys_platform != 'linux' or python_version < '3.12'",
     "plyer>=2.1",
     "pyperclip>=1.9",
 ]
@@ -113,7 +115,9 @@ voice = [
 ]
 # Continuous mic monitoring for `jarvis chat --wake`. openWakeWord is pure
 # Python + onnxruntime, MIT-licensed, fully offline (no API key), and ships a
-# pretrained "hey_jarvis" model downloaded on first use.
+# pretrained "hey_jarvis" model downloaded on first use. On Linux with Python
+# 3.12+ install it with uv: openwakeword requires tflite-runtime there, which
+# has no wheels, and [tool.uv] override-dependencies drops it.
 wake-word = [
     "openwakeword>=0.6",
     "onnxruntime<1.24; python_version < '3.11'",
@@ -246,6 +250,11 @@ git_describe_command = [
 # hard-fail the build. Mirror the runtime sentinel in src/openjarvis/__init__.py.
 # Such builds can inject the real version via SETUPTOOLS_SCM_PRETEND_VERSION.
 fallback_version = "0.0.0+unknown"
+
+[tool.uv]
+# openwakeword requires tflite-runtime on Linux, which has no wheels past Python
+# 3.11. The wake-word backend runs openWakeWord on onnxruntime, so drop it.
+override-dependencies = ["tflite-runtime; sys_platform == 'never'"]
 
 [tool.uv.sources]
 openjarvis-rust = { path = "rust/crates/openjarvis-python" }

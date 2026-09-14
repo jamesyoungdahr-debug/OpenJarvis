@@ -84,6 +84,15 @@ stack with `mss`/`Pillow` fallbacks on other platforms. Adds the
 
 ### Fixed
 
+**`desktop` failed to install on Linux with Python 3.12 or newer.**
+openWakeWord requires `tflite-runtime` on Linux, which has no wheels past
+Python 3.11. The `desktop` extra now skips openWakeWord on Linux with Python
+3.12+, uv installs drop `tflite-runtime` through `[tool.uv]`
+`override-dependencies`, and the wake-word backend loads openWakeWord's ONNX
+models instead of defaulting to tflite (a custom `.tflite` model still uses
+tflite). A pip install of the `wake-word` extra on Linux with Python 3.12+
+still fails; install it with uv there.
+
 **Approvals could be flipped after they were decided.** The
 `/v1/approvals/{id}/approve` and `/deny` endpoints behind the desktop approvals
 bell updated any existing action, so a denied or expired request could later be
