@@ -133,36 +133,80 @@ first full pytest run was cut off by a session restart and left no results.
   tflite-runtime). The change is left uncommitted. Rerun `uv lock` after the
   `pyproject.toml` fix above so tflite-runtime drops out, then commit it.
 
-## Next steps
+## Next steps (plan approved by Liam, 2026-09-14)
 
-1. Fix the open issues above. Then, in the Linux `.venv`, build the Rust
-   extension, run `make test`, and trace the unexplained assertion mismatches
-   in "Environment notes".
-2. Live tests. Already done on Windows: the approval queue through the real
-   `jarvis approvals` command (approve, timeout, deny, and refusing to
-   re-approve), `notify`, `clipboard`, `computer_use` screenshots,
-   `hyperv_query`, `hyperv_admin` rejecting an unknown VM and a wildcard, and
-   `jarvis ask` against a real LM Studio model (approved and timed-out calls).
-   Still to do:
-   - `jarvis chat --wake` with a microphone. Deferred on Linux: the Z13's
-     built-in digital mic has no driver yet (kernel: "No matching ASoC machine
-     driver found" for `acp70`), and its "Internal Microphone" input is only
-     noise. Liam will fix the mic later; use a USB mic or Windows until then.
-   - a confirmation-gated tool from the desktop app, approved from the bell
-   - `jarvis agents ask --yes` writing an approved row
-   - `send_email` over SMTP and Gmail
-   - `computer_use` pointer and keyboard actions
-   - `hyperv_admin` state changes on a disposable VM
-3. Push to the fork (`origin` on Linux, `fork` on Windows) only when Liam asks
-   (this branch was pushed on 2026-09-13 at
-   his request). No pull request to `open-jarvis/OpenJarvis` until Liam asks and
-   every item above has been live-tested. Record why each change was added and
-   what goal it serves in `FORK_CHANGES.md`, and log it in `CHANGELOG.md`. After
-   each completed phase or feature, sync the project to the backup copy: on
-   Windows `C:\projects\Open Jarvis Backup`; on Linux a verified full git bundle
-   in `/home/liam/Projects/backups/jarvis`, named
-   `jarvis-<YYYYMMDD-HHMM>-<short commit>.bundle`.
-4. The branch-wide regression comparison (`tests/tools`, `tests/security`,
-   `tests/cli`, `tests/core` and `tests/server` on `5588bfcf` versus the branch)
-   was interrupted at about 85% on both sides and never finished. Re-run it
-   before any pull request.
+Local models write every edit through the `local-llm` scheduler, Claude reviews
+each diff, and nothing is pushed unless Liam asks. Write long logs to
+`/home/liam/Projects/logs/jarvis/`, never a session scratchpad, which a session
+restart wipes. After each phase, commit locally and make a verified backup: on
+Linux a full git bundle in `/home/liam/Projects/backups/jarvis`, named
+`jarvis-<YYYYMMDD-HHMM>-<short commit>.bundle`; on Windows sync
+`C:\projects\Open Jarvis Backup`.
+
+### Phase 1: finish the paused fix
+
+1. Remove the extra blank line in
+   `tests/security/test_capability_confirmation_floor.py`.
+2. Run `uv lock` and confirm `tflite-runtime` is gone from `uv.lock`.
+3. Prove the fix on Linux with Python 3.12: `uv sync` with `--extra desktop`
+   added installs; `uv sync --extra wake-word` installs openwakeword without
+   tflite; a pip dry run of `.[desktop]` in a throwaway venv skips openwakeword.
+4. Run `ruff check`, `ruff format --check` and `pytest tests/speech`.
+5. Add a `CHANGELOG.md` Fixed entry and a `FORK_CHANGES.md` entry saying why,
+   then update this file.
+
+### Phase 2: full test suite on Linux
+
+1. Run `make test` in the background, logging to
+   `/home/liam/Projects/logs/jarvis/`.
+2. Sort failures into environment problems and real bugs, and trace the
+   `511 == 448` and `438 == 384` mismatches.
+3. Redo the regression comparison against `6e42464c`, where this branch leaves
+   `upstream/main`. The old baseline `5588bfcf` is the branch's first commit and
+   already has changes. Use a separate git worktree with its own `.venv`, and
+   run `tests/tools`, `tests/security`, `tests/cli`, `tests/core` and
+   `tests/server` on both.
+4. Hand real bugs to local models one unit at a time.
+
+### Phase 3: live tests on Linux (KDE on Wayland)
+
+Already done on Windows: the approval queue through the real
+`jarvis approvals` command (approve, timeout, deny, and refusing to
+re-approve), `notify`, `clipboard`, `computer_use` screenshots,
+`hyperv_query`, `hyperv_admin` rejecting an unknown VM and a wildcard, and
+`jarvis ask` against a real LM Studio model (approved and timed-out calls).
+
+- `jarvis agents ask --yes` writing an approved row: take a scheduler lease,
+  point jarvis only at the model the lease names, and release it afterwards.
+- Approvals bell: run `jarvis serve` and the web frontend (`vite`), approve a
+  gated tool from the bell, and check that a second decision returns 409.
+- `notify`: should work, since `notify-send` is present.
+- `clipboard`: needs `wl-clipboard`, which isn't installed. Liam decides.
+- `computer_use` pointer and keyboard actions: pyautogui mostly fails on
+  Wayland. Ask Liam first, since it moves his mouse, and record what happens.
+- `send_email` over SMTP and Gmail: needs an account Liam sets up. Claude never
+  enters credentials.
+
+### Phase 4: deferred
+
+- `jarvis chat --wake` with a microphone. Deferred on Linux: the Z13's
+  built-in digital mic has no driver yet (kernel: "No matching ASoC machine
+  driver found" for `acp70`), and its "Internal Microphone" input is only
+  noise. Liam will fix the mic later; use a USB mic or Windows until then.
+- On Windows: `hyperv_admin` state changes on a disposable VM, and the Windows
+  desktop app's approvals bell.
+
+### Phase 5: pull request (only when Liam asks)
+
+1. Rebase on the latest `upstream/main` and rerun the tests.
+2. Final pass on the docs, `CHANGELOG.md` and `FORK_CHANGES.md`.
+3. Push to the fork (`origin` on Linux, `fork` on Windows), then open the pull
+   request to `open-jarvis/OpenJarvis`.
+
+### Open decisions for Liam
+
+1. May `openwakeword` download its `hey_jarvis` onnx model to prove it loads
+   without tflite?
+2. Install `wl-clipboard`, or leave `clipboard` for Windows?
+3. May `computer_use` move the pointer and type on this desktop?
+4. Set up a test SMTP account now, or later?
