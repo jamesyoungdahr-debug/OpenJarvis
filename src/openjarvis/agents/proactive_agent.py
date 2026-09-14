@@ -494,6 +494,37 @@ class ProactiveAgent(ToolUsingAgent):
             else:
                 pending_actions.append(action)
 
+        # Steps 4 and 5 only run actions a person already approved (trivial tier
+        # or a remembered "always approve") and notify the user, but both tools
+        # require confirmation and a scheduled run has no one to ask. Run them
+        # through a separate executor that auto-approves just these two tools
+        # and records each approval; the executor the model uses stays gated.
+        from openjarvis.security.approval_callback import (
+            make_audited_auto_approve_callback,
+        )
+        from openjarvis.tools._stubs import ToolExecutor
+
+        gated = self._executor
+        internal_executor = ToolExecutor(
+            [
+                tool
+                for name, tool in gated._tools.items()
+                if name in ("execute_pending_actions", "channel_send")
+            ],
+            bus=gated._bus,
+            interactive=True,
+            confirm_callback=make_audited_auto_approve_callback(
+                store=store,
+                agent_id=gated._agent_id or self.agent_id,
+                source="proactive_agent.run",
+            ),
+            default_timeout=gated._default_timeout,
+            capability_policy=gated._capability_policy,
+            agent_id=gated._agent_id,
+            boundary_guard=gated._boundary_guard,
+            rate_limiter=gated._rate_limiter,
+        )
+
         # --- Step 4: Execute all auto-approved actions ---
         executed_results: List[Dict[str, Any]] = []
         if auto_approve_ids:
@@ -502,7 +533,7 @@ class ProactiveAgent(ToolUsingAgent):
                 name="execute_pending_actions",
                 arguments=json.dumps({"action_ids": auto_approve_ids}),
             )
-            exec_result = self._executor.execute(exec_call)
+            exec_result = internal_executor.execute(exec_call)
             if exec_result.success and exec_result.content:
                 try:
                     executed_results = json.loads(exec_result.content)
@@ -523,9 +554,14 @@ class ProactiveAgent(ToolUsingAgent):
                     }
                 ),
             )
-            self._executor.execute(send_call)
-            for action in pending_actions:
-                store.update_status(action.id, action.status, notification_sent=True)
+            send_result = internal_executor.execute(send_call)
+            # Only a delivered notification counts; otherwise the requests
+            # would be marked as sent and never reach the user.
+            if send_result.success:
+                for action in pending_actions:
+                    store.update_status(
+                        action.id, action.status, notification_sent=True
+                    )
 
         self._emit_turn_end(turns=1)
         return AgentResult(

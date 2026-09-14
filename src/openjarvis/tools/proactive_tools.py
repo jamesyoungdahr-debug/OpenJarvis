@@ -387,10 +387,16 @@ class ExecutePendingActionsTool(BaseTool):
         store = self._store or get_store()
         action_ids: Optional[List[str]] = params.get("action_ids")
 
+        # Approved tool_confirmation rows are audit records of tool approvals,
+        # not proactive actions, so they are never executed here.
+        approved = [
+            a for a in store.list_approved() if a.action_type != "tool_confirmation"
+        ]
         if action_ids:
-            actions = [a for a in store.list_approved() if a.id in set(action_ids)]
+            wanted = set(action_ids)
+            actions = [a for a in approved if a.id in wanted]
         else:
-            actions = store.list_approved()
+            actions = approved
 
         results: List[Dict[str, Any]] = []
         for action in actions:
