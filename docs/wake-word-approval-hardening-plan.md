@@ -150,3 +150,6 @@ Liam delegated these to Claude on 2026-09-14.
 - 2026-09-14: Liam allowed Claude to create a throwaway Hyper-V VM for the
   `hyperv_admin` live test, skipped the SMTP and microphone tests for now, and
   asked to push the branch.
+- 2026-09-14: Liam started the pull request, then cancelled it before anything
+  was pushed. The squashed PR branch `feat/approval-hardening-new-tools-pr`
+  stays local only.
