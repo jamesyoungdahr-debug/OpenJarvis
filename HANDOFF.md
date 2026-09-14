@@ -172,6 +172,15 @@ in the plan.
   Python `dbus` package isn't in `.venv` (it prints a warning), and an empty
   title is rejected. Log:
   `/home/liam/Projects/logs/jarvis/phase3-notify-20260914-0739.log`.
+- `jarvis agents ask` with the default `--yes` works: `file_write` ran, and
+  `approvals.db` recorded one `approved` `tool_confirmation` row with source
+  `cli.agent_ask` and `auto_approved` true. It ran with a throwaway
+  `OPENJARVIS_HOME` against the 4080's model under a scheduler lease. Log:
+  `/home/liam/Projects/logs/jarvis/phase3-agents-ask-yes-20260914-0741.log`.
+- Side effect: that run downloaded `Systran/faster-whisper-base` (142 MB) into
+  `~/.cache/huggingface`. Upstream's `system/builder.py` starts speech
+  auto-discovery on every run, and the `desktop` extra installs faster-whisper.
+  It's left in place for Liam (open decision 7).
 - The web approvals bell can't run yet: `node` and `npm` aren't installed
   (open decision 6 in the plan). The REST side is tested with `curl` instead.
 

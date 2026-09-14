@@ -54,8 +54,9 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
 `hyperv_query`, `hyperv_admin` rejecting an unknown VM and a wildcard, and
 `jarvis ask` against a real LM Studio model (approved and timed-out calls).
 
-- [ ] `jarvis agents ask --yes` writing an approved row: take a scheduler lease,
-  point jarvis only at the model the lease names, and release it afterwards.
+- [x] `jarvis agents ask --yes` writing an approved row: works. `file_write` ran,
+  and `approvals.db` got one `approved` row with source `cli.agent_ask` and
+  `auto_approved` true (4080 lease, throwaway `OPENJARVIS_HOME`).
 - [ ] Approvals bell: run `jarvis serve` and the web frontend (`vite`), approve
   a gated tool from the bell, and check that a second decision returns 409.
   `node` and `npm` aren't installed, so the bell UI waits for open decision 6;
@@ -98,6 +99,9 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
    capability-gated, or accept the 400 and update the test?
 6. Install `nodejs` and `npm` (`sudo pacman -S nodejs npm`) so the web frontend
    and its approvals bell can be tested here?
+7. A live `jarvis agents ask` downloaded `Systran/faster-whisper-base` (142 MB)
+   into `~/.cache/huggingface`, because upstream's system builder starts speech
+   auto-discovery on every run. Keep or delete it, and report it upstream?
 
 ## Decisions
 
