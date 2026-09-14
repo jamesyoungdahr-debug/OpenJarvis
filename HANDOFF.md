@@ -110,7 +110,10 @@ in `.venv`. `make test` builds the Rust extension with maturin before pytest.
    `hyperv_query`, `hyperv_admin` rejecting an unknown VM and a wildcard, and
    `jarvis ask` against a real LM Studio model (approved and timed-out calls).
    Still to do:
-   - `jarvis chat --wake` with a microphone
+   - `jarvis chat --wake` with a microphone. Deferred on Linux: the Z13's
+     built-in digital mic has no driver yet (kernel: "No matching ASoC machine
+     driver found" for `acp70`), and its "Internal Microphone" input is only
+     noise. Liam will fix the mic later; use a USB mic or Windows until then.
    - a confirmation-gated tool from the desktop app, approved from the bell
    - `jarvis agents ask --yes` writing an approved row
    - `send_email` over SMTP and Gmail
