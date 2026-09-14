@@ -44,8 +44,8 @@ Linux a full git bundle in `/home/liam/Projects/backups/jarvis`, named
   and `tests/server` on both.
 - [x] Hand real bugs to local models one unit at a time: `record_decision`
   confirmation, the `security` test fixtures and the Hyper-V test reloads.
-- [ ] `test_create_agent` still fails: `POST /v1/agents` can't run the now
-  gated `agent_spawn` (open decision 5).
+- [x] `test_create_agent`: fixed. The agent admin routes auto-approve
+  `agent_spawn` and `agent_kill` with an audit record (decision 5).
 
 ## Phase 3: live tests on Linux (KDE on Wayland)
 
@@ -61,15 +61,18 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
 - [x] Approvals REST flow behind the bell: works. A streamed managed-agent chat
   queued `file_write`, approve returned 200 and wrote the file, and a second
   approve or a deny returned 409.
-- [ ] Approvals bell UI in the web frontend: waits for open decision 6 (no
-  `node` or `npm` here).
+- [x] Approvals bell UI: tested on Windows, which has Node (decision 6).
+  Approving from the bell wrote `approved`, and approving a request already
+  approved elsewhere returned 409 and the bell refreshed.
 - [x] `notify`: works. plyer falls back to `notify-send` because python-dbus
   isn't in `.venv`, and an empty title is rejected.
-- [ ] `clipboard`: needs `wl-clipboard`, which isn't installed. Liam decides.
-- [ ] `computer_use` pointer and keyboard actions: pyautogui mostly fails on
-  Wayland. Ask Liam first, since it moves his mouse, and record what happens.
-- [ ] `send_email` over SMTP and Gmail: needs an account Liam sets up. Claude
-  never enters credentials.
+- [x] `clipboard`: not tested on Linux; it was already live-tested on Windows
+  (decision 2).
+- [x] `computer_use` pointer and keyboard: tested on Windows (decision 3). The
+  pointer moved 40 px and back, Shift was pressed, and an off-screen point was
+  rejected.
+- [ ] `send_email` over SMTP and Gmail: waits for Liam to set up a test account
+  (decision 4). Claude never creates accounts or enters credentials.
 
 ## Phase 4: deferred
 
@@ -88,22 +91,24 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
 - [ ] Push to the fork (`origin` on Linux, `fork` on Windows), then open the
   pull request to `open-jarvis/OpenJarvis`.
 
-## Open decisions for Liam
+## Resolved decisions
 
-1. May `openwakeword` download its `hey_jarvis` onnx model to prove it loads
-   without tflite?
-2. Install `wl-clipboard`, or leave `clipboard` for Windows?
-3. May `computer_use` move the pointer and type on this desktop?
-4. Set up a test SMTP account now, or later?
-5. `POST /v1/agents` returns 400 because `agent_spawn` now needs confirmation.
-   Queue an approval for REST admin calls (it would show in the bell),
-   auto-approve them with an audit row since the caller is already
-   capability-gated, or accept the 400 and update the test?
-6. Install `nodejs` and `npm` (`sudo pacman -S nodejs npm`) so the web frontend
-   and its approvals bell can be tested here?
-7. A live `jarvis agents ask` downloaded `Systran/faster-whisper-base` (142 MB)
-   into `~/.cache/huggingface`, because upstream's system builder starts speech
-   auto-discovery on every run. Keep or delete it, and report it upstream?
+Liam delegated these to Claude on 2026-09-14.
+
+1. openWakeWord model: yes, on Windows in a throwaway venv. It downloaded
+   `hey_jarvis` and loaded on ONNX.
+2. `wl-clipboard`: not installed. `clipboard` was already live-tested on
+   Windows.
+3. `computer_use`: yes, gently on Windows (a small pointer move and back, and a
+   Shift press). No clicks or typing into apps.
+4. SMTP test account: waits for Liam. Claude doesn't create accounts or enter
+   credentials.
+5. `POST /v1/agents`: auto-approve the agent admin tools with an audit record,
+   since the API caller is making the call directly (`b9762443`).
+6. Node on Linux: not installed. The bell UI was tested on Windows, which has
+   Node.
+7. The `faster-whisper-base` cache: kept, since the desktop speech feature uses
+   it. Not reported upstream, which would be a public post.
 
 ## Decisions
 
@@ -137,3 +142,6 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
   longer run already-approved actions or notify the user. Liam chose to let its
   own two internal steps auto-approve with an audit record, while tool calls
   the model makes stay gated.
+- 2026-09-14: Liam delegated the seven open decisions to Claude. The outcomes
+  are under "Resolved decisions", and the Windows live tests for decisions 1, 3
+  and 6 passed.
