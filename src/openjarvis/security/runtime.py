@@ -140,8 +140,13 @@ def execute_secured_tool(
     capability_policy: Any = None,
     rate_limiter: Any = None,
     agent_id: str,
+    confirm_callback: Any = None,
 ):
-    """Run one direct operation through the canonical ToolExecutor gates."""
+    """Run one direct operation through the canonical ToolExecutor gates.
+
+    Without ``confirm_callback`` a confirmation-gated tool fails closed. With
+    one, the callback decides after the rate-limit and capability gates pass.
+    """
     from openjarvis.core.types import ToolCall
     from openjarvis.tools._stubs import ToolExecutor
 
@@ -151,6 +156,8 @@ def execute_secured_tool(
         capability_policy=capability_policy,
         rate_limiter=rate_limiter,
         agent_id=agent_id,
+        interactive=confirm_callback is not None,
+        confirm_callback=confirm_callback,
     )
     return executor.execute(
         ToolCall(

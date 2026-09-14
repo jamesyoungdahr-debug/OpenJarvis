@@ -69,6 +69,20 @@ def _execute_agent_admin_tool(request: Request, tool: Any, params: Dict[str, Any
     from openjarvis.security.runtime import execute_secured_tool
 
     state = request.app.state
+    confirm_callback = None
+    if tool.spec.requires_confirmation:
+        from openjarvis.security.approval_callback import (
+            make_audited_auto_approve_callback,
+        )
+
+        # The API caller is making this admin call directly, so queueing a
+        # second approval would only leave the request hanging. Approve
+        # confirmation-gated admin tools (agent_spawn, agent_kill) at once and
+        # record each approval; capability and rate-limit gates still apply.
+        confirm_callback = make_audited_auto_approve_callback(
+            agent_id="server:api",
+            source="api_routes.agent_admin",
+        )
     return execute_secured_tool(
         tool,
         params,
@@ -76,6 +90,7 @@ def _execute_agent_admin_tool(request: Request, tool: Any, params: Dict[str, Any
         capability_policy=getattr(state, "capability_policy", None),
         rate_limiter=getattr(state, "rate_limiter", None),
         agent_id="server:api",
+        confirm_callback=confirm_callback,
     )
 
 
