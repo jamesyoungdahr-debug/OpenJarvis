@@ -114,18 +114,24 @@ first full pytest run was cut off by a session restart and left no results.
   `desktop`, so it won't catch this. `speech/openwakeword_backend.py` never
   passes `inference_framework`, so openWakeWord defaults to tflite and only
   falls back to onnx when `tflite_runtime` fails to import, which is why it
-  worked on Windows. Not fixed yet; Liam hasn't picked an approach. Options:
-  force onnx in the backend (tflite only for a custom `.tflite` model), then
-  skip openwakeword in `desktop` on Linux 3.12+, drop `tflite-runtime` with a
-  uv `override-dependencies` entry, take openwakeword back out of `desktop`,
-  or a combination.
+  worked on Windows. On 2026-09-14 Liam chose to combine the guards. The edits
+  are on disk, uncommitted and untested, and their diffs match the specs: the
+  backend passes `inference_framework="onnx"` (tflite only when the keyword
+  ends in `.tflite`), with two new tests in
+  `tests/speech/test_openwakeword_backend.py`; `desktop` marks openwakeword
+  `sys_platform != 'linux' or python_version < '3.12'`; and a new `[tool.uv]`
+  section sets `override-dependencies = ["tflite-runtime; sys_platform ==
+  'never'"]`. Liam stopped the work before `uv lock`, the test run and the
+  commit.
 - **One lint error.** `ruff check` reports I001 (unsorted import block) in
   `tests/security/test_capability_confirmation_floor.py`. `ruff format
-  --check` is clean. Not fixed yet.
+  --check` is clean. A fix moving the two `openjarvis` imports below
+  `import openjarvis.tools` is on disk, uncommitted, but it left two blank
+  lines after `import pytest`; remove one, then rerun `ruff check`.
 - **`uv.lock` is out of date.** `uv sync` regenerated it (+203/-1 lines, the
   branch's new dependencies such as openwakeword, plyer, pyautogui and
-  tflite-runtime). The change is left uncommitted until the `desktop` fix
-  settles which dependencies belong in the lock.
+  tflite-runtime). The change is left uncommitted. Rerun `uv lock` after the
+  `pyproject.toml` fix above so tflite-runtime drops out, then commit it.
 
 ## Next steps
 
