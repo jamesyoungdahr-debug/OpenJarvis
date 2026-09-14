@@ -85,10 +85,14 @@ Local model routing: the 4090 (`lmstudio-bridge`) was loaded with only a
 17,920-token context, too small for `run_coding_task` on large files. Large
 edits went to the 4080 Super (`lmstudio-4080super`, 92,672 tokens).
 
-Linux (`/home/liam/Projects/jarvis`, cloned 2026-09-13): the system Python is
-3.14, which the project doesn't support (`>=3.10,<3.14`). `uv`, `rustup` and
-`ruff` come from Arch's `extra` repo, and `uv sync` provides a supported Python
-in `.venv`. `make test` builds the Rust extension with maturin before pytest.
+Linux (`/home/liam/Projects/jarvis`, the Strix Halo, set up 2026-09-13): the
+system Python is 3.14, which the project doesn't support (`>=3.10,<3.14`).
+`uv`, `rustup` and `ruff` come from Arch's `extra` repo. `uv sync --extra dev
+--extra framework-comparison --extra server` (the same extras as `make setup`
+and CI) works and builds `.venv` on Python 3.12.13. `uv sync --extra desktop`
+fails; see "Open issues" below. `rust/rust-toolchain.toml` pins Rust 1.88,
+which rustup installed, and `maturin develop` builds `openjarvis_rust`. The
+first full pytest run was cut off by a session restart and left no results.
 
 ## Follow-up fixes
 
@@ -99,11 +103,35 @@ in `.venv`. `make test` builds the Rust extension with maturin before pytest.
 - The REST approve/deny endpoints return 409 for anything not pending, and the
   desktop approvals bell refreshes when a decision is rejected (`9c0c125c`).
 
+## Open issues found on Linux (2026-09-13)
+
+- **`desktop` can't install on Linux with Python 3.12 or newer.** This branch
+  added `openwakeword>=0.6` to the `desktop` extra. On Linux, openwakeword
+  0.6.0 (the latest release) requires `tflite-runtime`, whose newest wheels
+  stop at Python 3.11. That breaks `uv sync --extra desktop`,
+  `scripts/quickstart.sh` and the desktop app's own `uv sync` in
+  `frontend/src-tauri/src/lib.rs`. Linux CI (`ci.yml`) doesn't install
+  `desktop`, so it won't catch this. `speech/openwakeword_backend.py` never
+  passes `inference_framework`, so openWakeWord defaults to tflite and only
+  falls back to onnx when `tflite_runtime` fails to import, which is why it
+  worked on Windows. Not fixed yet; Liam hasn't picked an approach. Options:
+  force onnx in the backend (tflite only for a custom `.tflite` model), then
+  skip openwakeword in `desktop` on Linux 3.12+, drop `tflite-runtime` with a
+  uv `override-dependencies` entry, take openwakeword back out of `desktop`,
+  or a combination.
+- **One lint error.** `ruff check` reports I001 (unsorted import block) in
+  `tests/security/test_capability_confirmation_floor.py`. `ruff format
+  --check` is clean. Not fixed yet.
+- **`uv.lock` is out of date.** `uv sync` regenerated it (+203/-1 lines, the
+  branch's new dependencies such as openwakeword, plyer, pyautogui and
+  tflite-runtime). The change is left uncommitted until the `desktop` fix
+  settles which dependencies belong in the lock.
+
 ## Next steps
 
-1. On a machine with `uv`: run `uv sync --extra dev --extra desktop`, build the
-   Rust extension, run `make test`, and trace the unexplained assertion
-   mismatches above.
+1. Fix the open issues above. Then, in the Linux `.venv`, build the Rust
+   extension, run `make test`, and trace the unexplained assertion mismatches
+   in "Environment notes".
 2. Live tests. Already done on Windows: the approval queue through the real
    `jarvis approvals` command (approve, timeout, deny, and refusing to
    re-approve), `notify`, `clipboard`, `computer_use` screenshots,
