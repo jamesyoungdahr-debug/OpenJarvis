@@ -196,3 +196,4 @@ The approved plan (2026-09-14) lives in
 [`docs/wake-word-approval-hardening-plan.md`](docs/wake-word-approval-hardening-plan.md):
 phases and units, open decisions for Liam, and the decision log. Update it as
 units finish or decisions change, and keep this file's status sections current.
+The overnight work was pushed to the fork on 2026-09-14 at Liam's request.
