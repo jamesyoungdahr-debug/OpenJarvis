@@ -13,7 +13,6 @@ from openjarvis.core.types import ToolCall
 from openjarvis.security.approval_callback import NEVER_REMEMBER_TOOLS
 from openjarvis.security.capabilities import DEFAULT_TOOL_CAPABILITIES, Capability
 from openjarvis.tools import hyperv_admin as hyperv_admin_module
-from openjarvis.tools._hyperv import HyperVError
 from openjarvis.tools._stubs import ToolExecutor
 from openjarvis.tools.hyperv_admin import HyperVAdminTool
 
@@ -146,7 +145,12 @@ def test_invalid_params_rejected_without_running_powershell(params, expected):
 
 
 def test_runner_error_message_is_returned():
-    error = HyperVError("No virtual machine with that name was found.")
+    # Take HyperVError from the live module: other tests reload every
+    # openjarvis.tools module, and HyperVAdminTool only catches the class its
+    # module currently holds.
+    error = hyperv_admin_module.HyperVError(
+        "No virtual machine with that name was found."
+    )
     with patch(_RUNNER, side_effect=error):
         result = HyperVAdminTool().execute(action="start", name="missing")
 

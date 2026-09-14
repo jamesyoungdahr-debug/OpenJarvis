@@ -73,6 +73,11 @@ approvals bell) already existed, but only the proactive agent used it.
   to power off virtual machines. Goal: a one-time or stale approval never
   becomes standing access. A remembered "always approve" doesn't apply to them,
   and `--yes` refuses them.
+- **`record_decision` asks too.** Why: this upstream proactive tool approves or
+  denies any queued action and can save an "always approve" rule, but it never
+  asked anyone, so an agent could approve its own queued action. The
+  confirmation-floor test caught it on Linux. Goal: approving a queued action
+  is always a person's decision.
 
 ## New tools
 

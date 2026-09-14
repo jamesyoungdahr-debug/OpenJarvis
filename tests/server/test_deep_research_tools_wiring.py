@@ -186,7 +186,13 @@ async def test_server_deep_research_merges_and_executes_all_tool_sources(
         policy.deny(runtime_agent_id, "system:admin")
     rate_limiter = _RecordingRateLimiter()
     app_state = SimpleNamespace(
-        config=SimpleNamespace(memory_files=None, system_prompt=None),
+        config=SimpleNamespace(
+            memory_files=None,
+            system_prompt=None,
+            security=SimpleNamespace(
+                approval_timeout_seconds=1.0, approval_poll_interval_seconds=0.01
+            ),
+        ),
         bus=EventBus(record_history=True),
         capability_policy=policy,
         rate_limiter=rate_limiter,

@@ -91,8 +91,8 @@ system Python is 3.14, which the project doesn't support (`>=3.10,<3.14`).
 --extra framework-comparison --extra server` (the same extras as `make setup`
 and CI) works and builds `.venv` on Python 3.12.13. `uv sync --extra desktop`
 failed until the 2026-09-14 fix below; it works now. `rust/rust-toolchain.toml` pins Rust 1.88,
-which rustup installed, and `maturin develop` builds `openjarvis_rust`. The
-first full pytest run was cut off by a session restart and left no results.
+which rustup installed, and `maturin develop` builds `openjarvis_rust`; rebuild
+it after every `uv sync`, which removes it. Test results are below.
 
 ## Follow-up fixes
 
@@ -124,6 +124,47 @@ first full pytest run was cut off by a session restart and left no results.
 - **`uv.lock`** is regenerated with the override. It still lists
   `tflite-runtime` 2.14.0, but only behind the never-true marker, so
   `uv export` and `uv sync --all-extras --dry-run` never install it.
+
+## Linux test results (2026-09-14)
+
+Full suite with `pytest -n auto` (the `make test` command) on Python 3.12.13.
+Logs and JUnit files are in `/home/liam/Projects/logs/jarvis/`.
+
+- Branch `275215d6` plus the fixes below: 8,821 passed, 6 failed, 73 skipped.
+- Baseline `6e42464c`, where the branch leaves `upstream/main`, run in a git
+  worktree at `/home/liam/Projects/scratch/jarvis-baseline-6e42464c`: 8,579
+  passed, 5 failed, 69 skipped.
+- The 5 failures on both are `tests/evals/comparison/test_subprocess_runner.py`,
+  which reads `/sys/class/powercap/intel-rapl:0/energy_uj`. Only root can read
+  it on this machine, so it's the environment, not the code.
+- The `511 == 448` and `438 == 384` mismatches from the Windows run didn't
+  appear on Linux.
+- `uv sync` removes the `maturin develop` build of `openjarvis_rust`, which
+  turned most of the first run into `ModuleNotFoundError`. Rebuild it after
+  every `uv sync`.
+
+Fixed during the run:
+
+- `record_decision`, an upstream proactive tool, approves or denies queued
+  actions and can save "always approve" rules, but it didn't require
+  confirmation. The confirmation-floor test caught it, and it now has
+  `requires_confirmation=True`.
+- The branch's server changes read `app_config.security`, which broke six
+  upstream tests whose fake configs had no `security`. The fixtures in
+  `tests/server/test_managed_agent_resolved_tools.py` and
+  `tests/server/test_deep_research_tools_wiring.py` now include it, with a
+  1-second approval timeout.
+- Nine of the branch's Hyper-V tests failed only in the full parallel run,
+  because `tests/tools/test_tool_registration.py` reloads every
+  `openjarvis.tools` module and replaces `HyperVError` with a new class. The
+  tests now reach it through the live module.
+
+Still failing, waiting for Liam: `test_create_agent`. The branch made
+`agent_spawn` require confirmation, and `POST /v1/agents` runs it with no
+confirmation callback, so the route now returns 400 ("requires confirmation but
+no confirmation callback is available"). `agent_kill` was already gated
+upstream, so `DELETE /v1/agents/{id}` has the same limit. See open decision 5
+in the plan.
 
 ## Next steps
 

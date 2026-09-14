@@ -9,7 +9,10 @@ from unittest.mock import patch
 import pytest
 
 from openjarvis.tools import _hyperv
-from openjarvis.tools._hyperv import HyperVError, run_hyperv_json
+
+# Reach HyperVError and run_hyperv_json through the module, not imported names:
+# other tests reload every openjarvis.tools module, which replaces HyperVError
+# with a new class that an imported name would no longer match.
 
 _RUN = "openjarvis.tools._hyperv.subprocess.run"
 _PLATFORM = "openjarvis.tools._hyperv.sys.platform"
@@ -23,8 +26,8 @@ def _completed(returncode=0, stdout=b"", stderr=b""):
 
 def test_non_windows_fails_without_running_powershell():
     with patch(_PLATFORM, "linux"), patch(_RUN) as run:
-        with pytest.raises(HyperVError, match="only available on Windows"):
-            run_hyperv_json("Get-VM")
+        with pytest.raises(_hyperv.HyperVError, match="only available on Windows"):
+            _hyperv.run_hyperv_json("Get-VM")
 
     run.assert_not_called()
 
@@ -34,7 +37,7 @@ def test_parses_json_output():
         patch(_PLATFORM, "win32"),
         patch(_RUN, return_value=_completed(stdout=b'[{"name":"vm1"}]')),
     ):
-        assert run_hyperv_json("Get-VM") == [{"name": "vm1"}]
+        assert _hyperv.run_hyperv_json("Get-VM") == [{"name": "vm1"}]
 
 
 def test_command_shape_and_hidden_window():
@@ -42,7 +45,7 @@ def test_command_shape_and_hidden_window():
         patch(_PLATFORM, "win32"),
         patch(_RUN, return_value=_completed(stdout=b"[]")) as run,
     ):
-        run_hyperv_json("Get-VM", timeout_seconds=12)
+        _hyperv.run_hyperv_json("Get-VM", timeout_seconds=12)
 
     command = run.call_args.args[0]
     assert command[:4] == [
@@ -66,7 +69,7 @@ def test_values_travel_only_through_environment():
         patch(_PLATFORM, "win32"),
         patch(_RUN, return_value=_completed(stdout=b"[]")) as run,
     ):
-        run_hyperv_json(
+        _hyperv.run_hyperv_json(
             "Get-VM -Name $env:OPENJARVIS_HYPERV_VM_NAME",
             values={"VM_NAME": malicious},
         )
@@ -81,7 +84,7 @@ def test_stale_prefixed_environment_values_are_removed():
         patch(_PLATFORM, "win32"),
         patch(_RUN, return_value=_completed(stdout=b"[]")) as run,
     ):
-        run_hyperv_json("Get-VM")
+        _hyperv.run_hyperv_json("Get-VM")
 
     assert "OPENJARVIS_HYPERV_STALE" not in run.call_args.kwargs["env"]
 
@@ -99,14 +102,14 @@ def test_stale_prefixed_environment_values_are_removed():
 def test_invalid_values_rejected_before_running(values):
     with patch(_PLATFORM, "win32"), patch(_RUN) as run:
         with pytest.raises(ValueError):
-            run_hyperv_json("Get-VM", values=values)
+            _hyperv.run_hyperv_json("Get-VM", values=values)
 
     run.assert_not_called()
 
 
 def test_empty_output_returns_none():
     with patch(_PLATFORM, "win32"), patch(_RUN, return_value=_completed(stdout=b"  ")):
-        assert run_hyperv_json("Get-VM") is None
+        assert _hyperv.run_hyperv_json("Get-VM") is None
 
 
 def test_invalid_json_raises():
@@ -114,15 +117,15 @@ def test_invalid_json_raises():
         patch(_PLATFORM, "win32"),
         patch(_RUN, return_value=_completed(stdout=b"not json")),
     ):
-        with pytest.raises(HyperVError, match="not valid JSON"):
-            run_hyperv_json("Get-VM")
+        with pytest.raises(_hyperv.HyperVError, match="not valid JSON"):
+            _hyperv.run_hyperv_json("Get-VM")
 
 
 def test_oversized_output_raises():
     big = b"[" + b"1," * (_hyperv._MAX_OUTPUT_BYTES // 2) + b"1]"
     with patch(_PLATFORM, "win32"), patch(_RUN, return_value=_completed(stdout=big)):
-        with pytest.raises(HyperVError, match="too much output"):
-            run_hyperv_json("Get-VM")
+        with pytest.raises(_hyperv.HyperVError, match="too much output"):
+            _hyperv.run_hyperv_json("Get-VM")
 
 
 @pytest.mark.parametrize(
@@ -146,18 +149,18 @@ def test_failures_are_classified(stderr, expected):
         patch(_PLATFORM, "win32"),
         patch(_RUN, return_value=_completed(returncode=1, stderr=stderr)),
     ):
-        with pytest.raises(HyperVError, match=expected):
-            run_hyperv_json("Get-VM")
+        with pytest.raises(_hyperv.HyperVError, match=expected):
+            _hyperv.run_hyperv_json("Get-VM")
 
 
 def test_missing_powershell_raises():
     with patch(_PLATFORM, "win32"), patch(_RUN, side_effect=FileNotFoundError()):
-        with pytest.raises(HyperVError, match="was not found"):
-            run_hyperv_json("Get-VM")
+        with pytest.raises(_hyperv.HyperVError, match="was not found"):
+            _hyperv.run_hyperv_json("Get-VM")
 
 
 def test_timeout_raises():
     error = subprocess.TimeoutExpired(cmd="powershell.exe", timeout=5)
     with patch(_PLATFORM, "win32"), patch(_RUN, side_effect=error):
-        with pytest.raises(HyperVError, match="timed out"):
-            run_hyperv_json("Get-VM", timeout_seconds=5)
+        with pytest.raises(_hyperv.HyperVError, match="timed out"):
+            _hyperv.run_hyperv_json("Get-VM", timeout_seconds=5)

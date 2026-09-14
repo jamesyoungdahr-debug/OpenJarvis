@@ -289,6 +289,9 @@ class RecordDecisionTool(BaseTool):
                 "required": ["action_id", "approved"],
             },
             category="proactive",
+            # An agent could otherwise approve its own queued action, or save an
+            # "always approve" rule for it, without anyone seeing the decision.
+            requires_confirmation=True,
         )
 
     def execute(self, **params: Any) -> ToolResult:

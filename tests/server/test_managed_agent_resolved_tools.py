@@ -130,7 +130,13 @@ async def test_sse_advertises_and_executes_the_same_resolved_tool_instance() -> 
     colliding_mcp = _CollidingMCPTool()
     mcp_spec = colliding_mcp.to_openai_function()
     app_state = SimpleNamespace(
-        config=SimpleNamespace(memory_files=None, system_prompt=None),
+        config=SimpleNamespace(
+            memory_files=None,
+            system_prompt=None,
+            security=SimpleNamespace(
+                approval_timeout_seconds=1.0, approval_poll_interval_seconds=0.01
+            ),
+        ),
         memory_backend=None,
         channel_backend=None,
         channel_bridge=None,
@@ -208,7 +214,13 @@ async def test_sse_mcp_opt_out_skips_discovery(monkeypatch) -> None:
     manager = MagicMock()
     manager.list_messages.return_value = []
     app_state = SimpleNamespace(
-        config=SimpleNamespace(memory_files=None, system_prompt=None),
+        config=SimpleNamespace(
+            memory_files=None,
+            system_prompt=None,
+            security=SimpleNamespace(
+                approval_timeout_seconds=1.0, approval_poll_interval_seconds=0.01
+            ),
+        ),
         memory_backend=None,
         channel_backend=None,
         channel_bridge=None,
@@ -259,6 +271,9 @@ async def test_sse_memory_tools_resolve_backend_when_context_injection_is_off(
         system_prompt=None,
         agent=SimpleNamespace(context_from_memory=False),
         memory=SimpleNamespace(default_backend="sqlite", db_path="memory.db"),
+        security=SimpleNamespace(
+            approval_timeout_seconds=1.0, approval_poll_interval_seconds=0.01
+        ),
     )
     app_state = SimpleNamespace(
         config=app_config,

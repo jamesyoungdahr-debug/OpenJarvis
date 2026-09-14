@@ -2,7 +2,8 @@
 
 - **Date:** 2026-09-14
 - **Status:** approved by Liam on 2026-09-14. Phase 1 is done except loading a
-  real openWakeWord model, which waits for Liam. Phase 2 is next.
+  real openWakeWord model, and Phase 2 is done except `test_create_agent`; both
+  wait for Liam. Phase 3 is next.
 - **Branch:** `feat/wake-word-and-approval-hardening` in
   `/home/liam/Projects/jarvis` (the Strix Halo). Cold-start notes are in
   `HANDOFF.md`.
@@ -31,16 +32,19 @@ Linux a full git bundle in `/home/liam/Projects/backups/jarvis`, named
 
 ## Phase 2: full test suite on Linux
 
-- [ ] Run `make test` in the background, logging to
+- [x] Run `make test` in the background, logging to
   `/home/liam/Projects/logs/jarvis/`.
-- [ ] Sort failures into environment problems and real bugs, and trace the
-  `511 == 448` and `438 == 384` mismatches.
-- [ ] Redo the regression comparison against `6e42464c`, where this branch
+- [x] Sort failures into environment problems and real bugs, and trace the
+  `511 == 448` and `438 == 384` mismatches (they didn't appear on Linux).
+- [x] Redo the regression comparison against `6e42464c`, where this branch
   leaves `upstream/main`. The old baseline `5588bfcf` is the branch's first
   commit and already has changes. Use a separate git worktree with its own
   `.venv`, and run `tests/tools`, `tests/security`, `tests/cli`, `tests/core`
   and `tests/server` on both.
-- [ ] Hand real bugs to local models one unit at a time.
+- [x] Hand real bugs to local models one unit at a time: `record_decision`
+  confirmation, the `security` test fixtures and the Hyper-V test reloads.
+- [ ] `test_create_agent` still fails: `POST /v1/agents` can't run the now
+  gated `agent_spawn` (open decision 5).
 
 ## Phase 3: live tests on Linux (KDE on Wayland)
 
@@ -85,6 +89,10 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
 2. Install `wl-clipboard`, or leave `clipboard` for Windows?
 3. May `computer_use` move the pointer and type on this desktop?
 4. Set up a test SMTP account now, or later?
+5. `POST /v1/agents` returns 400 because `agent_spawn` now needs confirmation.
+   Queue an approval for REST admin calls (it would show in the bell),
+   auto-approve them with an audit row since the caller is already
+   capability-gated, or accept the 400 and update the test?
 
 ## Decisions
 
@@ -106,3 +114,7 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
   him, log after every change, and push nothing.
 - 2026-09-14: `uv.lock` keeps `tflite-runtime` behind the override's never-true
   marker. Accepted, since uv never installs it.
+- 2026-09-14: `record_decision` now requires confirmation, since an agent could
+  otherwise approve its own queued action.
+- 2026-09-14: `POST /v1/agents` stays as it is until Liam decides (open
+  decision 5).

@@ -145,6 +145,12 @@ the offer silently did nothing.
 
 ### Security
 
+**`record_decision` no longer approves queued actions silently.** The proactive
+agent's `record_decision` tool approves or denies any queued action and can save
+an "always approve" rule, but it didn't require confirmation, so an agent could
+approve its own queued action without anyone seeing it. It now asks for
+approval on every call, as the confirmation-floor regression test requires.
+
 **Tool confirmations actually ask.** `jarvis ask`, the HTTP server and the
 desktop app passed a confirmation callback that always answered yes, so
 confirmation-gated tools ran without anyone approving them. Those calls now
