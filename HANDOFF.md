@@ -181,8 +181,14 @@ in the plan.
   `~/.cache/huggingface`. Upstream's `system/builder.py` starts speech
   auto-discovery on every run, and the `desktop` extra installs faster-whisper.
   It's left in place for Liam (open decision 7).
-- The web approvals bell can't run yet: `node` and `npm` aren't installed
-  (open decision 6 in the plan). The REST side is tested with `curl` instead.
+- The approvals REST flow behind the bell works: a streamed managed-agent chat
+  queued a `file_write` approval and wrote nothing yet, `POST .../approve`
+  returned 200 and the file was written, a second approve and a deny both
+  returned 409, and an unknown id returned 404. The `approvals.db` row is
+  `approved` with source `agent_manager_routes.chat_stream`. Log:
+  `/home/liam/Projects/logs/jarvis/phase3-approvals-rest-20260914-0744.log`.
+- The bell UI itself can't run yet: `node` and `npm` aren't installed (open
+  decision 6 in the plan).
 
 ## Next steps
 

@@ -2,8 +2,9 @@
 
 - **Date:** 2026-09-14
 - **Status:** approved by Liam on 2026-09-14. Phase 1 is done except loading a
-  real openWakeWord model, and Phase 2 is done except `test_create_agent`; both
-  wait for Liam. Phase 3 is next.
+  real openWakeWord model, and Phase 2 is done except `test_create_agent`. Phase
+  3 is done except the tests that need Liam's decisions (clipboard,
+  `computer_use`, `send_email` and the bell UI).
 - **Branch:** `feat/wake-word-and-approval-hardening` in
   `/home/liam/Projects/jarvis` (the Strix Halo). Cold-start notes are in
   `HANDOFF.md`.
@@ -57,10 +58,11 @@ re-approve), `notify`, `clipboard`, `computer_use` screenshots,
 - [x] `jarvis agents ask --yes` writing an approved row: works. `file_write` ran,
   and `approvals.db` got one `approved` row with source `cli.agent_ask` and
   `auto_approved` true (4080 lease, throwaway `OPENJARVIS_HOME`).
-- [ ] Approvals bell: run `jarvis serve` and the web frontend (`vite`), approve
-  a gated tool from the bell, and check that a second decision returns 409.
-  `node` and `npm` aren't installed, so the bell UI waits for open decision 6;
-  the REST side (pending, approve, 409) can be tested with `curl`.
+- [x] Approvals REST flow behind the bell: works. A streamed managed-agent chat
+  queued `file_write`, approve returned 200 and wrote the file, and a second
+  approve or a deny returned 409.
+- [ ] Approvals bell UI in the web frontend: waits for open decision 6 (no
+  `node` or `npm` here).
 - [x] `notify`: works. plyer falls back to `notify-send` because python-dbus
   isn't in `.venv`, and an empty title is rejected.
 - [ ] `clipboard`: needs `wl-clipboard`, which isn't installed. Liam decides.
