@@ -102,6 +102,14 @@ it after every `uv sync`, which removes it. Test results are below.
   the full data.
 - The REST approve/deny endpoints return 409 for anything not pending, and the
   desktop approvals bell refreshes when a decision is rejected (`9c0c125c`).
+- The scheduled proactive agent (2026-09-14): its run couldn't execute
+  already-approved actions or send its notification, because both tools now
+  require confirmation and the scheduler passes no callback. It now runs those
+  two steps through an executor that auto-approves only them and records each
+  approval, marks requests notified only when the send succeeds, and
+  `execute_pending_actions` skips `tool_confirmation` audit rows. Found in the
+  Windows review of the Linux commits; covered by
+  `tests/agents/test_proactive_agent_run.py`.
 
 ## Issues found on Linux (2026-09-13, fixed 2026-09-14)
 

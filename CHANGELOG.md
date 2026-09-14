@@ -84,6 +84,17 @@ stack with `mss`/`Pillow` fallbacks on other platforms. Adds the
 
 ### Fixed
 
+**The scheduled proactive agent couldn't act or notify.** Its run executes
+actions a person already approved (trivial tier or a remembered "always
+approve") and then sends the user a notification, but both tools require
+confirmation and a scheduled run passed no confirmation callback, so both
+calls failed. Pending actions were still marked as notified, so those approval
+requests never reached the user. The run now uses a separate executor that
+auto-approves only those two tools and records each approval, tools the model
+calls itself stay gated, a request is marked as notified only when the
+notification was delivered, and `execute_pending_actions` never runs the
+approval log's own `tool_confirmation` records.
+
 **`desktop` failed to install on Linux with Python 3.12 or newer.**
 openWakeWord requires `tflite-runtime` on Linux, which has no wheels past
 Python 3.11. The `desktop` extra now skips openWakeWord on Linux with Python

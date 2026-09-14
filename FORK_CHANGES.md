@@ -78,6 +78,13 @@ approvals bell) already existed, but only the proactive agent used it.
   asked anyone, so an agent could approve its own queued action. The
   confirmation-floor test caught it on Linux. Goal: approving a queued action
   is always a person's decision.
+- **The proactive agent's own steps are approved and recorded.** Why: once
+  `execute_pending_actions` and `channel_send` required confirmation, a
+  scheduled proactive run had no one to ask, so it could neither run actions a
+  person had already approved nor send its notification, and it still marked
+  those requests as notified. Goal: already-approved work still happens and
+  reaches the user, with an audit record for each step, while anything the
+  model tries on its own still needs a person.
 
 ## New tools
 
