@@ -1,8 +1,11 @@
 # Handoff — Wake-word + Approval Hardening / New Tools
 
-Working branch: `feat/wake-word-and-approval-hardening`, pushed to remote
-`fork` (`https://github.com/jamesyoungdahr-debug/OpenJarvis`, a fork of
-`open-jarvis/OpenJarvis`, which stays `origin` and is read-only for us).
+Working branch: `feat/wake-word-and-approval-hardening`, pushed to the fork
+(`https://github.com/jamesyoungdahr-debug/OpenJarvis`, a fork of
+`open-jarvis/OpenJarvis`). In the Linux checkout at `/home/liam/Projects/jarvis`
+the fork is remote `origin` and `open-jarvis/OpenJarvis` is remote `upstream`,
+which is read-only for us. The earlier Windows checkout named them `fork` and
+`origin`.
 
 This file lets a fresh session pick the work up without re-deriving context.
 Delete it once this branch is merged or closed.
@@ -57,7 +60,7 @@ windows when it spawns `uv`, `ollama`, `git` or `where`.
 
 ## Environment notes
 
-This machine has no `uv` environment and no built `openjarvis_rust`
+The Windows machine has no `uv` environment and no built `openjarvis_rust`
 extension. Verification used
 `C:\Users\Liam\AppData\Local\Programs\Python\Python312\python.exe` with
 `PYTHONPATH` set to the repo's `src`, plus ruff from the same Python.
@@ -81,6 +84,11 @@ A full-suite run also showed a few assertion mismatches (`511 == 448`,
 Local model routing: the 4090 (`lmstudio-bridge`) was loaded with only a
 17,920-token context, too small for `run_coding_task` on large files. Large
 edits went to the 4080 Super (`lmstudio-4080super`, 92,672 tokens).
+
+Linux (`/home/liam/Projects/jarvis`, cloned 2026-09-13): the system Python is
+3.14, which the project doesn't support (`>=3.10,<3.14`). `uv`, `rustup` and
+`ruff` come from Arch's `extra` repo, and `uv sync` provides a supported Python
+in `.venv`. `make test` builds the Rust extension with maturin before pytest.
 
 ## Follow-up fixes
 
@@ -108,12 +116,15 @@ edits went to the 4080 Super (`lmstudio-4080super`, 92,672 tokens).
    - `send_email` over SMTP and Gmail
    - `computer_use` pointer and keyboard actions
    - `hyperv_admin` state changes on a disposable VM
-3. Push to `fork` only when Liam asks (this branch was pushed on 2026-09-13 at
+3. Push to the fork (`origin` on Linux, `fork` on Windows) only when Liam asks
+   (this branch was pushed on 2026-09-13 at
    his request). No pull request to `open-jarvis/OpenJarvis` until Liam asks and
    every item above has been live-tested. Record why each change was added and
    what goal it serves in `FORK_CHANGES.md`, and log it in `CHANGELOG.md`. After
-   each completed phase or feature, sync the project to the backup copy at
-   `C:\projects\Open Jarvis Backup`.
+   each completed phase or feature, sync the project to the backup copy: on
+   Windows `C:\projects\Open Jarvis Backup`; on Linux a verified full git bundle
+   in `/home/liam/Projects/backups/jarvis`, named
+   `jarvis-<YYYYMMDD-HHMM>-<short commit>.bundle`.
 4. The branch-wide regression comparison (`tests/tools`, `tests/security`,
    `tests/cli`, `tests/core` and `tests/server` on `5588bfcf` versus the branch)
    was interrupted at about 85% on both sides and never finished. Re-run it
